@@ -39,7 +39,7 @@ const Note = {
 
 /** User input */
 
-type Key = "KeyS" | "KeyA" | "KeyD" | "KeyW";
+type Key = "KeyH" | "KeyJ" | "KeyK" | "KeyL";
 
 type Event = "keydown" | "keyup" | "keypress";
 
