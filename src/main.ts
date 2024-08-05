@@ -28,7 +28,6 @@ const Viewport = {
 
 const Constants = {
     TICK_RATE_MS: 500,
-    GRID_HEIGHT: 30,
     SONG_NAME: "RockinRobin",
 } as const;
 
