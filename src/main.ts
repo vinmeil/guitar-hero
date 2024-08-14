@@ -145,39 +145,6 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
      * @param s Current state
      */
     const render = (s: State) => {
-        // Add blocks to the main grid canvas
-        const greenCircle = createSvgElement(svg.namespaceURI, "circle", {
-            r: `${Note.RADIUS}`,
-            cx: "20%",
-            cy: "200",
-            style: "fill: green",
-            class: "shadow",
-        });
-
-        const redCircle = createSvgElement(svg.namespaceURI, "circle", {
-            r: `${Note.RADIUS}`,
-            cx: "40%",
-            cy: "50",
-            style: "fill: red",
-            class: "shadow",
-        });
-
-        const blueCircle = createSvgElement(svg.namespaceURI, "circle", {
-            r: `${Note.RADIUS}`,
-            cx: "60%",
-            cy: "50",
-            style: "fill: blue",
-            class: "shadow",
-        });
-
-        const yellowCircle = createSvgElement(svg.namespaceURI, "circle", {
-            r: `${Note.RADIUS}`,
-            cx: "80%",
-            cy: "-15",
-            style: "fill: yellow",
-            class: "shadow",
-        });
-
         from(notes).pipe(
           mergeMap(note => 
             of(note).pipe(
@@ -185,36 +152,39 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
               map(_ => {
                 if (note.user_played) {
                   const column = getColumn(note.pitch, minPitch, maxPitch);
-                  createCircle(column);
+                  const circle = createCircle(column);
+                  svg.appendChild(circle);
+                  // moveDown(circle);
                 }
               })
             )
           ),
         ).subscribe()
-
-        svg.appendChild(greenCircle);
-        svg.appendChild(redCircle);
-        svg.appendChild(blueCircle);
-        svg.appendChild(yellowCircle);
     };
 
+    // moves circle down
+
+    // gets the column that the circle should go to
     const getColumn = (pitch: number, minPitch: number, maxPitch: number): number => {
-      const range = maxPitch - minPitch + 1;
+      const range = maxPitch - minPitch + 1; // finds range of pitch
       const cur = pitch - minPitch;
       const ratio = cur / range;
-      return Math.floor(ratio * 4);
+      return Math.floor(ratio * 4); // return column based on quartile of the current pitch
     }
 
     const columnColors = ["green", "red", "blue", "yellow"]
-    const createCircle = (column: number) => {
-      console.log("Created Circle on column:", column)
-      svg.appendChild(createSvgElement(svg.namespaceURI, "circle", {
+
+     // creates circle svgelement and returns it
+    const createCircle = (column: number): SVGElement => {
+      const circle = createSvgElement(svg.namespaceURI, "circle", {
         r: `${Note.RADIUS}`,
-        cx: `${((column + 1) * 20)}%`,
+        cx: `${((column + 1) * 20)}%`, // taken from examples above
         cy: Constants.START_Y,
         style: `fill: ${columnColors[column]}`,
         class: "shadow",
-      }))
+      })
+
+      return circle;
     }
 
     // process csv
