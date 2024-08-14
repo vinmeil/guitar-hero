@@ -14,7 +14,7 @@
 
 import "./style.css";
 
-import { fromEvent, interval, merge } from "rxjs";
+import { from, fromEvent, interval, merge } from "rxjs";
 import { map, filter, scan } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
@@ -105,10 +105,7 @@ const createSvgElement = (
  * This is the function called on page load. Your main game loop
  * should be called here.
  */
-export function main(
-    csvContents: string,
-    samples: { [key: string]: Tone.Sampler },
-) {
+export function main(csvContents: string, samples: { [key: string]: Tone.Sampler }) {
     // Canvas elements
     const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
         HTMLElement;
@@ -186,6 +183,30 @@ export function main(
         svg.appendChild(yellowCircle);
     };
 
+    // process csv
+    const values: string[] = csvContents.split("\n").slice(1);
+
+    // get min and max pitch
+    const pitches: number[] = values.map((line) => parseInt(line.split(",")[3]));
+    const minPitch = Math.min(...pitches);
+    const maxPitch = Math.max(...pitches);
+
+    // turn everything to objects so its easier
+    const notes = values.map((line) => {
+      const splitLine = line.split(",");
+      return {
+        user_played: splitLine[0],
+        instrument: splitLine[1],
+        velocity: splitLine[2],
+        pitch: splitLine[3],
+        start: splitLine[4],
+        end: splitLine[5],
+      }
+    })
+
+    console.log(notes)
+    
+
     const source$ = tick$
         .pipe(scan((s: State) => ({ gameEnd: false }), initialState))
         .subscribe((s: State) => {
@@ -233,13 +254,12 @@ if (typeof window !== "undefined") {
         for (const instrument in samples) {
             samples[instrument].toDestination();
             samples[instrument].release = 0.5;
+            fetch(`${baseUrl}/assets/${Constants.SONG_NAME}.csv`)
+                .then((response) => response.text())
+                .then((text) => startGame(text))
+                .catch((error) =>
+                    console.error("Error fetching the CSV file:", error),
+                );
         }
-
-        fetch(`${baseUrl}/assets/${Constants.SONG_NAME}.csv`)
-            .then((response) => response.text())
-            .then((text) => startGame(text))
-            .catch((error) =>
-                console.error("Error fetching the CSV file:", error),
-            );
     });
 }
