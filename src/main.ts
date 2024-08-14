@@ -19,21 +19,11 @@ import { map, filter, scan, mergeMap, delay, takeUntil, take } from "rxjs/operat
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { CreateCircle, initialState, reduceState, Tick } from "./state";
-import { Action, State } from "./types";
+import { Action, Constants, State, Viewport } from "./types";
 import { updateView } from "./view";
+import { generateUniqueId } from "./util";
 
 /** Constants */
-
-const Viewport = {
-    CANVAS_WIDTH: 200,
-    CANVAS_HEIGHT: 400,
-} as const;
-
-const Constants = {
-    TICK_RATE_MS: 500,
-    SONG_NAME: "RockinRobin",
-    START_Y: "0",
-} as const;
 
 const Note = {
     RADIUS: 0.07 * Viewport.CANVAS_WIDTH,
@@ -154,85 +144,25 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
      * @param s Current state
      */
     const render = (s: State) => {
-        s.circleProps.forEach(circleProps => {
-          const circle = createSvgElement(svg.namespaceURI, "circle", circleProps);
-          svg.appendChild(circle);
+        s.circleSVGs.forEach(circleSVG => {
+          // const circle = createSvgElement(svg.namespaceURI, "circle", circleProps);
+          // svg.appendChild(circle);
       
           const moveCircle$ = interval(10).pipe(
-            scan((cy) => cy + 4, Number(circle.getAttribute("cy"))),
-            takeUntil(fromEvent(circle, 'removed'))
+            scan((cy) => cy + 4, Number(circleSVG.getAttribute("cy"))),
+            takeUntil(fromEvent(circleSVG, 'removed'))
           );
       
           moveCircle$.subscribe(cy => {
-            circle.setAttribute("cy", `${cy}`);
-            if (cy > Viewport.CANVAS_HEIGHT) {
-              circle.remove();
+            circleSVG.setAttribute("cy", `${cy}`);
+            if (cy > Viewport.CANVAS_HEIGHT - 50) {
+              circleSVG.remove();
             }
           });
         });
 
-        // this works.
-        // const circle = createCircle(0) as SVGGraphicsElement;
-        // const initY = Number(circle.getAttribute("cy"));
-        // svg.appendChild(circle);
-        // const move$ = interval(5).pipe(
-        //   scan((acc, _) => acc + 2, initY),
-        // ).subscribe(y => {
-        //   circle.setAttribute("cy", `${y}`);
-        //   if (y > Viewport.CANVAS_HEIGHT - 50) {
-        //     circle.remove();
-        //   }
-        // })
-
-        // console.log("created circle")
-
-        // const note$ = from(notes).pipe(
-        //   mergeMap(note => of(note).pipe(delay(note.start * 1000)))
-        // )
-
-        // let cnt = 0;
-
-        // note$.subscribe(note => {
-        //   if (note.user_played) {
-        //     const column = getColumn(note.pitch, minPitch, maxPitch);
-        //     const circle = createCircle(column) as SVGGraphicsElement;
-        //     svg.appendChild(circle);
-        //     cnt += 1
-        //     console.log("created circle", cnt)
-
-        //     const initialY = Number(circle.getAttribute("cy"));
-        //     const move$ = interval(10).pipe(
-        //       scan((acc, _) => acc + 2, initialY),
-        //     )
-
-        //     move$.subscribe(y => {
-        //       circle.setAttribute("cy", `${y}`);
-        //       // console.log("got here", y)
-        //       if (y > Viewport.CANVAS_HEIGHT) {
-        //         circle.remove();
-        //       }
-        //     })
-
-        //   }
-        // })
-
-        // from(notes).pipe(
-        //   mergeMap(note => 
-        //     of(note).pipe(
-        //       delay(Number(note.start) * 1000),
-        //       map(_ => {
-        //         if (note.user_played) {
-        //           const column = getColumn(note.pitch, minPitch, maxPitch);
-        //           const circle = createCircle(column);
-        //           svg.appendChild(circle);
-        //         }
-        //       })
-        //     )
-        //   ),
-        // ).subscribe()
+        // const newCircleProps = s.circle
     };
-    
-    
     
     // gets the column that the circle should go to
     const getColumn = (pitch: number, minPitch: number, maxPitch: number): number => {
@@ -245,17 +175,17 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     const columnColors = ["green", "red", "blue", "yellow"]
     
     // creates circle svgelement and returns it
-    const createCircle = (column: number): SVGElement => {
-      const circle = createSvgElement(svg.namespaceURI, "circle", {
-        r: `${Note.RADIUS}`,
-        cx: `${((column + 1) * 20)}%`, // taken from examples above
-        cy: Constants.START_Y,
-        style: `fill: ${columnColors[column]}`,
-        class: "shadow",
-      })
+    // const createCircle = (column: number): SVGElement => {
+    //   const circle = createSvgElement(svg.namespaceURI, "circle", {
+    //     r: `${Note.RADIUS}`,
+    //     cx: `${((column + 1) * 20)}%`, // taken from examples above
+    //     cy: Constants.START_Y,
+    //     style: `fill: ${columnColors[column]}`,
+    //     class: "shadow",
+    //   })
       
-      return circle;
-    }
+    //   return circle;
+    // }
     
     // process csv
     const values: string[] = csvContents.split("\n").slice(1).filter(Boolean);
@@ -278,19 +208,6 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
         end: Number(splitLine[5]),
       }
     })
-
-    const precomputedState = { ...initialState };
-    precomputedState.circleProps = notes.map(note => {
-      const column = getColumn(note.pitch, minPitch, maxPitch);
-      return {
-        r: `${Note.RADIUS}`,
-        cx: `${((column + 1) * 20)}%`, // taken from examples above
-        cy: Constants.START_Y,
-        style: `fill: ${columnColors[column]}`,
-        class: "shadow",
-      };
-
-    })
     
     const gameClock$ = tick$.pipe(map(elapsed => new Tick(elapsed)));
     const colOneKeyDown$ = key$("keydown", "KeyD").pipe(map(_ => console.log("green keydown")));
@@ -306,33 +223,41 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       mergeMap(note => of(note).pipe(delay(note.start * 1000))),
       map(note => {
         const column = getColumn(note.pitch, minPitch, maxPitch);
-        return {
+        return new CreateCircle({
+          id: generateUniqueId(),
           r: `${Note.RADIUS}`,
           cx: `${((column + 1) * 20)}%`, // taken from examples above
           cy: Constants.START_Y,
           style: `fill: ${columnColors[column]}`,
           class: "shadow",
-        }
+        })
       }),
     )
 
     // TODO: THIS WORKS
-    circleStream$.subscribe(circleProps => {
-      const circle = createSvgElement(svg.namespaceURI, "circle", circleProps);
-      svg.appendChild(circle);
+    // circleStream$.subscribe(circleProps => {
+    //   const circle = createSvgElement(svg.namespaceURI, "circle", circleProps);
+    //   svg.appendChild(circle);
   
-      const moveCircle$ = interval(7).pipe(
-        scan((cy) => cy + 4, Number(circle.getAttribute("cy"))),
-        takeUntil(fromEvent(circle, 'removed'))
-      );
+    //   const moveCircle$ = interval(7).pipe(
+    //     scan((cy) => cy + 4, Number(circle.getAttribute("cy"))),
+    //     takeUntil(fromEvent(circle, 'removed'))
+    //   );
   
-      moveCircle$.subscribe(cy => {
-        circle.setAttribute("cy", `${cy}`);
-        if (cy > Viewport.CANVAS_HEIGHT - 50) {
-          circle.remove();
-        }
-      });
-    })
+    //   moveCircle$.subscribe(cy => {
+    //     circle.setAttribute("cy", `${cy}`);
+    //     if (cy > Viewport.CANVAS_HEIGHT - 50) {
+    //       circle.remove();
+    //     }
+    //   });
+    // })
+
+
+    // circleStream$.pipe(
+    //   scan(reduceState, initialState),
+    // ).subscribe(s => {
+    //   render(s);
+    // })
 
     // TODO: change any to the correct type
     const action$: Observable<any> = merge(
@@ -348,11 +273,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       circleStream$,
     );
     const state$: Observable<State> = action$.pipe( scan(reduceState, initialState) )
-    const subscription: Subscription = state$.subscribe(s => {
-      if (s.gameEnd) {
-        subscription.unsubscribe();
-      }
-    });
+    const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe()));
 
     // const source$ = tick$
     //     .pipe(scan((s: State) => ({ ...s, gameEnd: false }), initialState))

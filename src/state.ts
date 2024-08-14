@@ -1,4 +1,5 @@
-import { Action, Circle, State } from "./types";
+import { Action, Circle, Constants, State, Viewport } from "./types";
+import { attr } from "./util";
 
 export { Tick, CreateCircle, reduceState, initialState };
 
@@ -9,19 +10,32 @@ class Tick implements Action {
    * @returns new State
    */
   apply(s: State): State {
+      const updatedCircleProps = s.circleProps.map(Tick.moveBody).filter(circle => Number(circle.cy) <= Viewport.CANVAS_HEIGHT);
+      const updatedCircleSVGs = s.circleSVGs.filter(svg => document.getElementById(svg.id));
+
       return {
           ...s,
-          circleProps: s.circleProps.map(Tick.moveBody),
+          circleProps: updatedCircleProps,
+          circleSVGs: updatedCircleSVGs.concat(updatedCircleProps.map(Tick.createCircleSVG).filter((svg) => svg !== undefined)),
           time: this.elapsed,
       };
   }
 
   static moveBody = (circle: Circle): Circle => ({
     ...circle,
-    cy: `${parseInt(circle.cy) - 10}`,
+    cy: `${parseInt(circle.cy) + 4}`,
   })
 
-  
+  static createCircleSVG = (circle: Circle): SVGElement | undefined => {
+    if (!document.getElementById(circle.id)) {
+      const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
+        HTMLElement;
+      const newCircle = document.createElementNS(svg.namespaceURI, "circle") as SVGElement;
+      attr(newCircle, { ...circle });
+      svg.appendChild(newCircle);
+      return newCircle;
+    }
+  }
 }
 
 class CreateCircle implements Action {
