@@ -22,6 +22,7 @@ type ObjectId = Readonly<{ id: string }>
  * Circle type
  */
 type Circle = Readonly<{
+  user_played: boolean,
   id: string,
   r: string,
   cx: string,
@@ -37,6 +38,7 @@ type State = Readonly<{
   time: number,
   circleProps: ReadonlyArray<Circle>,
   circleSVGs: ReadonlyArray<SVGElement>,
+  exit: ReadonlyArray<Circle>,
   objCount: number,
   gameEnd: boolean,
   score: number,

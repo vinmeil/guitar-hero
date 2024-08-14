@@ -135,34 +135,6 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
 
     /** Determines the rate of time steps */
     const tick$ = interval(Constants.TICK_RATE_MS);
-
-    /**
-     * Renders the current state to the canvas.
-     *
-     * In MVC terms, this updates the View using the Model.
-     *
-     * @param s Current state
-     */
-    const render = (s: State) => {
-        s.circleSVGs.forEach(circleSVG => {
-          // const circle = createSvgElement(svg.namespaceURI, "circle", circleProps);
-          // svg.appendChild(circle);
-      
-          const moveCircle$ = interval(10).pipe(
-            scan((cy) => cy + 4, Number(circleSVG.getAttribute("cy"))),
-            takeUntil(fromEvent(circleSVG, 'removed'))
-          );
-      
-          moveCircle$.subscribe(cy => {
-            circleSVG.setAttribute("cy", `${cy}`);
-            if (cy > Viewport.CANVAS_HEIGHT - 50) {
-              circleSVG.remove();
-            }
-          });
-        });
-
-        // const newCircleProps = s.circle
-    };
     
     // gets the column that the circle should go to
     const getColumn = (pitch: number, minPitch: number, maxPitch: number): number => {
@@ -174,19 +146,6 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     
     const columnColors = ["green", "red", "blue", "yellow"]
     
-    // creates circle svgelement and returns it
-    // const createCircle = (column: number): SVGElement => {
-    //   const circle = createSvgElement(svg.namespaceURI, "circle", {
-    //     r: `${Note.RADIUS}`,
-    //     cx: `${((column + 1) * 20)}%`, // taken from examples above
-    //     cy: Constants.START_Y,
-    //     style: `fill: ${columnColors[column]}`,
-    //     class: "shadow",
-    //   })
-      
-    //   return circle;
-    // }
-    
     // process csv
     const values: string[] = csvContents.split("\n").slice(1).filter(Boolean);
     
@@ -194,13 +153,12 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     const pitches: number[] = values.map((line) => Number(line.split(",")[3]));
     const minPitch = Math.min(...pitches);
     const maxPitch = Math.max(...pitches);
-    console.log(minPitch, maxPitch);
     
     // turn everything to objects so its easier
     const notes = values.map((line) => {
       const splitLine = line.split(",");
       return {
-        user_played: Boolean(splitLine[0]),
+        user_played: splitLine[0].toLowerCase() === "true",
         instrument: splitLine[1],
         velocity: splitLine[2],
         pitch: Number(splitLine[3]),
@@ -224,6 +182,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       map(note => {
         const column = getColumn(note.pitch, minPitch, maxPitch);
         return new CreateCircle({
+          user_played: note.user_played,
           id: generateUniqueId(),
           r: `${Note.RADIUS}`,
           cx: `${((column + 1) * 20)}%`, // taken from examples above
@@ -234,30 +193,6 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       }),
     )
 
-    // TODO: THIS WORKS
-    // circleStream$.subscribe(circleProps => {
-    //   const circle = createSvgElement(svg.namespaceURI, "circle", circleProps);
-    //   svg.appendChild(circle);
-  
-    //   const moveCircle$ = interval(7).pipe(
-    //     scan((cy) => cy + 4, Number(circle.getAttribute("cy"))),
-    //     takeUntil(fromEvent(circle, 'removed'))
-    //   );
-  
-    //   moveCircle$.subscribe(cy => {
-    //     circle.setAttribute("cy", `${cy}`);
-    //     if (cy > Viewport.CANVAS_HEIGHT - 50) {
-    //       circle.remove();
-    //     }
-    //   });
-    // })
-
-
-    // circleStream$.pipe(
-    //   scan(reduceState, initialState),
-    // ).subscribe(s => {
-    //   render(s);
-    // })
 
     // TODO: change any to the correct type
     const action$: Observable<any> = merge(

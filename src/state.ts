@@ -10,6 +10,7 @@ class Tick implements Action {
    * @returns new State
    */
   apply(s: State): State {
+      const expired = s.circleProps.map(Tick.moveBody).filter(circle => Number(circle.cy) > Viewport.CANVAS_HEIGHT);
       const updatedCircleProps = s.circleProps.map(Tick.moveBody).filter(circle => Number(circle.cy) <= Viewport.CANVAS_HEIGHT);
       const updatedCircleSVGs = s.circleSVGs.filter(svg => document.getElementById(svg.id));
 
@@ -17,6 +18,7 @@ class Tick implements Action {
           ...s,
           circleProps: updatedCircleProps,
           circleSVGs: updatedCircleSVGs.concat(updatedCircleProps.map(Tick.createCircleSVG).filter((svg) => svg !== undefined)),
+          exit: expired,
           time: this.elapsed,
       };
   }
@@ -27,14 +29,20 @@ class Tick implements Action {
   })
 
   static createCircleSVG = (circle: Circle): SVGElement | undefined => {
-    if (!document.getElementById(circle.id)) {
-      const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
-        HTMLElement;
-      const newCircle = document.createElementNS(svg.namespaceURI, "circle") as SVGElement;
-      attr(newCircle, { ...circle });
-      svg.appendChild(newCircle);
-      return newCircle;
+    if (!circle.user_played) {
+      return undefined;
     }
+
+    if (document.getElementById(circle.id)) {
+      return undefined;
+    }
+
+    const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
+      HTMLElement;
+    const newCircle = document.createElementNS(svg.namespaceURI, "circle") as SVGElement;
+    attr(newCircle, { ...circle });
+    svg.appendChild(newCircle);
+    return newCircle;
   }
 }
 
@@ -58,6 +66,7 @@ const initialState: State = {
   time: 0,
   circleProps: [],
   circleSVGs: [],
+  exit: [],
   objCount: 0,
   gameEnd: false,
   score: 0,

@@ -15,7 +15,6 @@ const updateView = (onFinish: () => void) => {
     const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
     HTMLElement;
 
-    console.log("updating body view")
     const updateBodyView = (svg: HTMLElement) => (circle: Circle) => {
       function createNewCircle() {
         const newCircle = document.createElementNS(svg.namespaceURI, "circle") as SVGElement;
@@ -26,11 +25,14 @@ const updateView = (onFinish: () => void) => {
       const curCircle = document.getElementById(circle.id) || createNewCircle();
       attr(curCircle, { ...circle });
       if (Number(circle.cy) >= Viewport.CANVAS_HEIGHT - 5) {
-        console.log("removed circle:", circle.cy)
         curCircle.remove()
       }
     }
 
     s.circleProps.forEach(updateBodyView(svg));
+
+    s.exit.map((circle) => {
+      // console.log("circle has expired:", circle)
+    })
   }
 }
