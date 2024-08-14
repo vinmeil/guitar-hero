@@ -14,8 +14,8 @@
 
 import "./style.css";
 
-import { from, fromEvent, interval, merge } from "rxjs";
-import { map, filter, scan } from "rxjs/operators";
+import { from, fromEvent, interval, merge, of } from "rxjs";
+import { map, filter, scan, mergeMap, delay } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 
@@ -29,6 +29,7 @@ const Viewport = {
 const Constants = {
     TICK_RATE_MS: 500,
     SONG_NAME: "RockinRobin",
+    START_Y: "0",
 } as const;
 
 const Note = {
@@ -172,10 +173,24 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
         const yellowCircle = createSvgElement(svg.namespaceURI, "circle", {
             r: `${Note.RADIUS}`,
             cx: "80%",
-            cy: "50",
+            cy: "-15",
             style: "fill: yellow",
             class: "shadow",
         });
+
+        from(notes).pipe(
+          mergeMap(note => 
+            of(note).pipe(
+              delay(Number(note.start) * 1000),
+              map(_ => {
+                if (note.user_played) {
+                  const column = getColumn(note.pitch, minPitch, maxPitch);
+                  createCircle(column);
+                }
+              })
+            )
+          ),
+        ).subscribe()
 
         svg.appendChild(greenCircle);
         svg.appendChild(redCircle);
@@ -183,22 +198,42 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
         svg.appendChild(yellowCircle);
     };
 
+    const getColumn = (pitch: number, minPitch: number, maxPitch: number): number => {
+      const range = maxPitch - minPitch + 1;
+      const cur = pitch - minPitch;
+      const ratio = cur / range;
+      return Math.floor(ratio * 4);
+    }
+
+    const columnColors = ["green", "red", "blue", "yellow"]
+    const createCircle = (column: number) => {
+      console.log("Created Circle on column:", column)
+      svg.appendChild(createSvgElement(svg.namespaceURI, "circle", {
+        r: `${Note.RADIUS}`,
+        cx: `${((column + 1) * 20)}%`,
+        cy: Constants.START_Y,
+        style: `fill: ${columnColors[column]}`,
+        class: "shadow",
+      }))
+    }
+
     // process csv
-    const values: string[] = csvContents.split("\n").slice(1);
+    const values: string[] = csvContents.split("\n").slice(1).filter(Boolean);
 
     // get min and max pitch
-    const pitches: number[] = values.map((line) => parseInt(line.split(",")[3]));
+    const pitches: number[] = values.map((line) => Number(line.split(",")[3]));
     const minPitch = Math.min(...pitches);
     const maxPitch = Math.max(...pitches);
+    console.log(minPitch, maxPitch);
 
     // turn everything to objects so its easier
     const notes = values.map((line) => {
       const splitLine = line.split(",");
       return {
-        user_played: splitLine[0],
+        user_played: Boolean(splitLine[0]),
         instrument: splitLine[1],
         velocity: splitLine[2],
-        pitch: splitLine[3],
+        pitch: Number(splitLine[3]),
         start: splitLine[4],
         end: splitLine[5],
       }
