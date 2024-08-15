@@ -6,9 +6,8 @@ const Constants = {
   TICK_RATE_MS: 8,
   // SONG_NAME: "RockinRobin",
   // SONG_NAME: "ComparedChild",
-  SONG_NAME: "ComparedChild2",
   // SONG_NAME: "HungarianDanceNo5",
-  // SONG_NAME: "SleepingBeauty",
+  SONG_NAME: "SleepingBeauty",
   COLUMN_KEYS: ["KeyD", "KeyF", "KeyJ", "KeyK"],
   START_Y: "0",
 } as const;

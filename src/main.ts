@@ -14,11 +14,11 @@
 
 import "./style.css";
 
-import { from, fromEvent, interval, merge, Observable, of, Subscription } from "rxjs";
-import { map, filter, scan, mergeMap, delay, takeUntil, take } from "rxjs/operators";
+import { from, fromEvent, interval, merge, Observable, of, Subscription, timer } from "rxjs";
+import { map, filter, scan, mergeMap, delay, takeUntil, take, switchMap } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
-import { CreateCircle, initialState, KeyPress, reduceState, Tick } from "./state";
+import { CreateCircle, initialState, HitCircle, reduceState, Tick } from "./state";
 import { Action, Constants, State, Viewport } from "./types";
 import { updateView } from "./view";
 import { generateUniqueId } from "./util";
@@ -173,10 +173,10 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     })
     
     const gameClock$ = tick$.pipe(map(elapsed => new Tick(elapsed)));
-    const colOneKeyDown$ = key$("keydown", "KeyD").pipe(map(_ => new KeyPress("KeyD")));
-    const colTwoKeyDown$ = key$("keydown", "KeyF").pipe(map(_ => new KeyPress("KeyF")));
-    const colThreeKeyDown$ = key$("keydown", "KeyJ").pipe(map(_ => new KeyPress("KeyJ")));
-    const colFourKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new KeyPress("KeyK")));
+    const colOneKeyDown$ = key$("keydown", "KeyD").pipe(map(_ => new HitCircle("KeyD")));
+    const colTwoKeyDown$ = key$("keydown", "KeyF").pipe(map(_ => new HitCircle("KeyF")));
+    const colThreeKeyDown$ = key$("keydown", "KeyJ").pipe(map(_ => new HitCircle("KeyJ")));
+    const colFourKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new HitCircle("KeyK")));
     // const colOneKeyUp$ = key$("keyup", "KeyD").pipe(map(_ => console.log("green keyup")));
     // const colTwoKeyUp$ = key$("keyup", "KeyF").pipe(map(_ => console.log("red keyup")));
     // const colThreeKeyUp$ = key$("keyup", "KeyJ").pipe(map(_ => console.log("blue keyup")));
@@ -217,7 +217,12 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       // colFourKeyUp$,
       circleStream$,
     );
-    const state$: Observable<State> = action$.pipe( scan(reduceState, initialState) )
+
+    const delayedAction$ = timer(3000).pipe( // add a 3 second delay to allow the instruments to load
+      mergeMap(() => action$)
+    );
+
+    const state$: Observable<State> = delayedAction$.pipe( scan(reduceState, initialState) )
     const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe()));
     
     }

@@ -1,7 +1,7 @@
 import { Action, Circle, Constants, State, Viewport } from "./types";
 import { attr } from "./util";
 
-export { Tick, CreateCircle, reduceState, initialState, KeyPress };
+export { Tick, CreateCircle, reduceState, initialState, HitCircle };
 
 class Tick implements Action {
   constructor(public readonly elapsed: number) { }
@@ -46,7 +46,7 @@ class Tick implements Action {
   }
 }
 
-class KeyPress implements Action {
+class HitCircle implements Action {
   constructor(public readonly key: string) { }
 
   /**
