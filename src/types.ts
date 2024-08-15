@@ -3,9 +3,11 @@ export type { Circle, ObjectId, State, Action };
 export { Constants, Viewport };
 
 const Constants = {
-  TICK_RATE_MS: 10,
-  SONG_NAME: "RockinRobin",
+  TICK_RATE_MS: 6,
+  // SONG_NAME: "RockinRobin",
+  SONG_NAME: "HungarianDanceNo5",
   // SONG_NAME: "SleepingBeauty",
+  COLUMN_KEYS: ["KeyD", "KeyF", "KeyJ", "KeyK"],
   START_Y: "0",
 } as const;
 
@@ -27,7 +29,8 @@ type Circle = Readonly<{
   velocity: number,
   instrument: string,
   pitch: number,
-  user_played: boolean,
+  userPlayed: boolean,
+  circleClicked: boolean,
   id: string,
   r: string,
   cx: string,

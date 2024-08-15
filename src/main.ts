@@ -18,7 +18,7 @@ import { from, fromEvent, interval, merge, Observable, of, Subscription } from "
 import { map, filter, scan, mergeMap, delay, takeUntil, take } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
-import { CreateCircle, initialState, reduceState, Tick } from "./state";
+import { CreateCircle, initialState, KeyPress, reduceState, Tick } from "./state";
 import { Action, Constants, State, Viewport } from "./types";
 import { updateView } from "./view";
 import { generateUniqueId } from "./util";
@@ -138,10 +138,15 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     
     // gets the column that the circle should go to
     const getColumn = (pitch: number, minPitch: number, maxPitch: number): number => {
+      // const range = maxPitch - minPitch + 1; // finds range of pitch
+      // const cur = pitch - minPitch;
+      // const ratio = cur / range;
+      // return Math.floor(ratio * 4); // return column based on quartile of the current pitch
       const range = maxPitch - minPitch + 1; // finds range of pitch
-      const cur = pitch - minPitch;
+      const randomPitch = Math.floor(Math.random() * range) + minPitch; // generate random pitch within range
+      const cur = randomPitch - minPitch;
       const ratio = cur / range;
-      return Math.floor(ratio * 4); // return column based on quartile of the current pitch
+      return Math.floor(ratio * 4);
     }
     
     const columnColors = ["green", "red", "blue", "yellow"]
@@ -164,18 +169,18 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
         pitch: Number(splitLine[3]),
         start: Number(splitLine[4]),
         end: Number(splitLine[5]),
-      }
+      } as const
     })
     
     const gameClock$ = tick$.pipe(map(elapsed => new Tick(elapsed)));
-    const colOneKeyDown$ = key$("keydown", "KeyD").pipe(map(_ => console.log("green keydown")));
-    const colTwoKeyDown$ = key$("keydown", "KeyF").pipe(map(_ => console.log("red keydown")));
-    const colThreeKeyDown$ = key$("keydown", "KeyJ").pipe(map(_ => console.log("blue keydown")));
-    const colFourKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => console.log("yellow keydown")));
-    const colOneKeyUp$ = key$("keyup", "KeyD").pipe(map(_ => console.log("green keyup")));
-    const colTwoKeyUp$ = key$("keyup", "KeyF").pipe(map(_ => console.log("red keyup")));
-    const colThreeKeyUp$ = key$("keyup", "KeyJ").pipe(map(_ => console.log("blue keyup")));
-    const colFourKeyUp$ = key$("keyup", "KeyK").pipe(map(_ => console.log("yellow keyup")));
+    const colOneKeyDown$ = key$("keydown", "KeyD").pipe(map(_ => new KeyPress("KeyD")));
+    const colTwoKeyDown$ = key$("keydown", "KeyF").pipe(map(_ => new KeyPress("KeyF")));
+    const colThreeKeyDown$ = key$("keydown", "KeyJ").pipe(map(_ => new KeyPress("KeyJ")));
+    const colFourKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new KeyPress("KeyK")));
+    // const colOneKeyUp$ = key$("keyup", "KeyD").pipe(map(_ => console.log("green keyup")));
+    // const colTwoKeyUp$ = key$("keyup", "KeyF").pipe(map(_ => console.log("red keyup")));
+    // const colThreeKeyUp$ = key$("keyup", "KeyJ").pipe(map(_ => console.log("blue keyup")));
+    // const colFourKeyUp$ = key$("keyup", "KeyK").pipe(map(_ => console.log("yellow keyup")));
 
     const circleStream$ = from(notes).pipe(
       mergeMap(note => of(note).pipe(delay(note.start * 1000))),
@@ -186,7 +191,8 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
           duration: note.end - note.start,
           instrument: note.instrument,
           pitch: note.pitch,
-          user_played: note.user_played,
+          userPlayed: note.user_played,
+          circleClicked: false,
           id: generateUniqueId(),
           r: `${Note.RADIUS}`,
           cx: `${((column + 1) * 20)}%`, // taken from examples above
@@ -205,10 +211,10 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       colTwoKeyDown$,
       colThreeKeyDown$,
       colFourKeyDown$,
-      colOneKeyUp$,
-      colTwoKeyUp$,
-      colThreeKeyUp$,
-      colFourKeyUp$,
+      // colOneKeyUp$,
+      // colTwoKeyUp$,
+      // colThreeKeyUp$,
+      // colFourKeyUp$,
       circleStream$,
     );
     const state$: Observable<State> = action$.pipe( scan(reduceState, initialState) )

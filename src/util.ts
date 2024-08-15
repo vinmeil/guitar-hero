@@ -17,7 +17,7 @@ const generateUniqueId = (): string => {
 
 const playNote = (circle: Circle) => {
   const { instrument, pitch, duration, velocity } = circle;
-  const normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / 50; // divide by 50 because it is DAMN loud
+  const normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / 5; // divide because it is DAMN loud
 
   Tone.ToneAudioBuffer.loaded().then(() => {
     if (samples[instrument]) {
@@ -26,7 +26,7 @@ const playNote = (circle: Circle) => {
 
       samples[instrument].triggerAttackRelease(
         Tone.Frequency(pitch, "midi").toNote(), // Convert MIDI note to frequency
-        duration / 1000, // has to be in seconds
+        duration, // has to be in seconds
         undefined, // Use default time for note onset
         normalizedVelocity
       );

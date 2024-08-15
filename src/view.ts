@@ -30,7 +30,9 @@ const updateView = (onFinish: () => void) => {
 
     s.exit
       .map((circle) => {
-        playNote(circle);
+        if (!circle.userPlayed || circle.circleClicked) {
+          playNote(circle);
+        }
         return circle;
       })
       .forEach(circle => {

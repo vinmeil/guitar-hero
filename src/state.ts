@@ -1,7 +1,7 @@
 import { Action, Circle, Constants, State, Viewport } from "./types";
 import { attr } from "./util";
 
-export { Tick, CreateCircle, reduceState, initialState };
+export { Tick, CreateCircle, reduceState, initialState, KeyPress };
 
 class Tick implements Action {
   constructor(public readonly elapsed: number) { }
@@ -10,8 +10,8 @@ class Tick implements Action {
    * @returns new State
    */
   apply(s: State): State {
-      const expired = s.circleProps.map(Tick.moveBody).filter(circle => Number(circle.cy) > Viewport.CANVAS_HEIGHT - 50);
-      const updatedCircleProps = s.circleProps.map(Tick.moveBody).filter(circle => Number(circle.cy) <= Viewport.CANVAS_HEIGHT - 50);
+      const expired = s.circleProps.map(Tick.moveBody).filter(circle => (Number(circle.cy) > Viewport.CANVAS_HEIGHT - 30) || circle.circleClicked);
+      const updatedCircleProps = s.circleProps.map(Tick.moveBody).filter(circle => (Number(circle.cy) <= Viewport.CANVAS_HEIGHT - 30));
       const updatedCircleSVGs = s.circleSVGs.filter(svg => document.getElementById(svg.id));
 
       return {
@@ -29,7 +29,7 @@ class Tick implements Action {
   })
 
   static createCircleSVG = (circle: Circle): SVGElement | undefined => {
-    if (!circle.user_played) {
+    if (!circle.userPlayed) {
       return undefined;
     }
 
@@ -43,6 +43,50 @@ class Tick implements Action {
     attr(newCircle, { ...circle });
     svg.appendChild(newCircle);
     return newCircle;
+  }
+}
+
+class KeyPress implements Action {
+  constructor(public readonly key: string) { }
+
+  /**
+   * @param s old State
+   * @returns new State
+   */
+  apply(s: State): State {
+    const col = Constants.COLUMN_KEYS.indexOf(this.key as "KeyD" | "KeyF" | "KeyJ" | "KeyK");
+    const hitCircleCenter = Viewport.CANVAS_HEIGHT - 40;
+    // use +- 25px to account for the radius of the circle
+    const hitCircleRange = 70;
+
+    // find circles in hittable range
+    const hittableCircles = s.circleProps.filter(circle => {
+      const cy = Number(circle.cy);
+      return cy >= hitCircleCenter - hitCircleRange && cy <= hitCircleCenter + hitCircleRange;
+    }).filter(circle => {
+      return circle.cx == `${(col + 1) * 20}%`;
+    })
+
+    if (hittableCircles.length === 0) {
+      
+    }
+    // find circle at lowest point in hittable range
+    const circleToRemove = hittableCircles.reduce((lowest, circle) => {
+      return Number(circle.cy) < Number(lowest.cy) ? circle : lowest;
+    }, hittableCircles[0]);
+
+    // new states
+    const updatedCircleProps = s.circleProps.filter(circle => circle.id !== circleToRemove?.id);
+    const updatedCircleSVGProps = s.circleSVGs.filter(svg => svg.id !== circleToRemove?.id);
+
+    const newCircle = { ...circleToRemove, circleClicked: true };
+
+    return {
+      ...s,
+      circleProps: updatedCircleProps,
+      circleSVGs: updatedCircleSVGProps,
+      exit: s.exit.concat(newCircle ? [newCircle] : []),
+    };
   }
 }
 
