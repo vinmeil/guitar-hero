@@ -62,7 +62,7 @@ class HitCircle implements Action {
     // find circles in hittable range
     const hittableCircles = s.circleProps.filter(circle => {
       const cy = Number(circle.cy);
-      return cy >= hitCircleCenter - hitCircleRange && cy <= hitCircleCenter + hitCircleRange;
+      return cy >= hitCircleCenter - hitCircleRange && cy <= hitCircleCenter + hitCircleRange && circle.userPlayed;
     }).filter(circle => {
       return circle.cx == `${(col + 1) * 20}%`;
     })

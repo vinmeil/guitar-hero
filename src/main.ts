@@ -137,17 +137,38 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     const tick$ = interval(Constants.TICK_RATE_MS);
     
     // gets the column that the circle should go to
-    const getColumn = (pitch: number, minPitch: number, maxPitch: number): number => {
+    // const getColumn = (pitch: number, minPitch: number, maxPitch: number): number => {
       // const range = maxPitch - minPitch + 1; // finds range of pitch
       // const cur = pitch - minPitch;
       // const ratio = cur / range;
       // return Math.floor(ratio * 4); // return column based on quartile of the current pitch
-      const range = maxPitch - minPitch + 1; // finds range of pitch
-      const randomPitch = Math.floor(Math.random() * range) + minPitch; // generate random pitch within range
-      const cur = randomPitch - minPitch;
-      const ratio = cur / range;
-      return Math.floor(ratio * 4);
-    }
+
+    //   const range = maxPitch - minPitch + 1; // finds range of pitch
+    //   const randomPitch = Math.floor(Math.random() * range) + minPitch; // generate random pitch within range
+    //   const cur = randomPitch - minPitch;
+    //   const ratio = cur / range;
+    //   return Math.floor(ratio * 4);
+    // }
+
+    const lastAssignedColumn: { [startTime: number]: number } = {};
+
+function getColumn(startTime: number, pitch: number): number {
+  const columns = [0, 1, 2, 3]; // Assuming 4 columns
+  if (lastAssignedColumn[startTime] !== undefined) {
+    // Remove the last assigned column from the available columns
+    const lastColumn = lastAssignedColumn[startTime];
+    const availableColumns = columns.filter(col => col !== lastColumn);
+    // Assign a new column from the available columns
+    const newColumn = availableColumns[Math.floor(Math.random() * availableColumns.length)];
+    lastAssignedColumn[startTime] = newColumn;
+    return newColumn;
+  } else {
+    // If no column was assigned for this start time, assign a random column
+    const newColumn = columns[Math.floor(Math.random() * columns.length)];
+    lastAssignedColumn[startTime] = newColumn;
+    return newColumn;
+  }
+}
     
     const columnColors = ["green", "red", "blue", "yellow"]
     
@@ -185,7 +206,8 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     const circleStream$ = from(notes).pipe(
       mergeMap(note => of(note).pipe(delay(note.start * 1000))),
       map(note => {
-        const column = getColumn(note.pitch, minPitch, maxPitch);
+        // const column = getColumn(note.pitch, minPitch, maxPitch);
+        const column = getColumn(note.start, note.pitch);
         return new CreateCircle({
           velocity: note.velocity,
           duration: note.end - note.start,
