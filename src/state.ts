@@ -68,16 +68,14 @@ class KeyPress implements Action {
     })
 
     if (hittableCircles.length === 0) {
-      
+      return s;
     }
     // find circle at lowest point in hittable range
-    const circleToRemove = hittableCircles.reduce((lowest, circle) => {
-      return Number(circle.cy) < Number(lowest.cy) ? circle : lowest;
-    }, hittableCircles[0]);
+    const circleToRemove = hittableCircles.reduce((max, circle) => Number(circle.cy) > Number(max.cy) ? circle : max, hittableCircles[0]);
 
     // new states
-    const updatedCircleProps = s.circleProps.filter(circle => circle.id !== circleToRemove?.id);
-    const updatedCircleSVGProps = s.circleSVGs.filter(svg => svg.id !== circleToRemove?.id);
+    const updatedCircleProps = s.circleProps.filter(circle => circle.id !== circleToRemove.id);
+    const updatedCircleSVGProps = s.circleSVGs.filter(svg => svg.id !== circleToRemove.id);
 
     const newCircle = { ...circleToRemove, circleClicked: true };
 
@@ -85,7 +83,8 @@ class KeyPress implements Action {
       ...s,
       circleProps: updatedCircleProps,
       circleSVGs: updatedCircleSVGProps,
-      exit: s.exit.concat(newCircle ? [newCircle] : []),
+      exit: s.exit.concat(newCircle),
+      score: s.score + 1,
     };
   }
 }

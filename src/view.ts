@@ -27,6 +27,10 @@ const updateView = (onFinish: () => void) => {
     }
 
     s.circleProps.forEach(updateBodyView(svg));
+    const scoreHTML = document.getElementById("scoreText");
+    if (scoreHTML) {
+      scoreHTML.textContent = `${s.score}`;
+    }
 
     s.exit
       .map((circle) => {

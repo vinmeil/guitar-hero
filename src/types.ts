@@ -3,9 +3,11 @@ export type { Circle, ObjectId, State, Action };
 export { Constants, Viewport };
 
 const Constants = {
-  TICK_RATE_MS: 6,
+  TICK_RATE_MS: 8,
   // SONG_NAME: "RockinRobin",
-  SONG_NAME: "HungarianDanceNo5",
+  // SONG_NAME: "ComparedChild",
+  SONG_NAME: "ComparedChild2",
+  // SONG_NAME: "HungarianDanceNo5",
   // SONG_NAME: "SleepingBeauty",
   COLUMN_KEYS: ["KeyD", "KeyF", "KeyJ", "KeyK"],
   START_Y: "0",
