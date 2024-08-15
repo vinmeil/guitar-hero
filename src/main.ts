@@ -160,7 +160,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       return {
         user_played: splitLine[0].toLowerCase() === "true",
         instrument: splitLine[1],
-        velocity: splitLine[2],
+        velocity: Number(splitLine[2]),
         pitch: Number(splitLine[3]),
         start: Number(splitLine[4]),
         end: Number(splitLine[5]),
@@ -182,6 +182,10 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       map(note => {
         const column = getColumn(note.pitch, minPitch, maxPitch);
         return new CreateCircle({
+          velocity: note.velocity,
+          duration: note.end - note.start,
+          instrument: note.instrument,
+          pitch: note.pitch,
           user_played: note.user_played,
           id: generateUniqueId(),
           r: `${Note.RADIUS}`,
@@ -209,18 +213,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     );
     const state$: Observable<State> = action$.pipe( scan(reduceState, initialState) )
     const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe()));
-
-    // const source$ = tick$
-    //     .pipe(scan((s: State) => ({ ...s, gameEnd: false }), initialState))
-    //     .subscribe((s: State) => {
-    //         render(s);
-
-    //         if (s.gameEnd) {
-      //             show(gameover);
-    //         } else {
-      //             hide(gameover);
-      //         }
-      //     });
+    
     }
 
     // The following simply runs your main function on window load.  Make sure to leave it in place.

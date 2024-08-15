@@ -10,8 +10,8 @@ class Tick implements Action {
    * @returns new State
    */
   apply(s: State): State {
-      const expired = s.circleProps.map(Tick.moveBody).filter(circle => Number(circle.cy) > Viewport.CANVAS_HEIGHT);
-      const updatedCircleProps = s.circleProps.map(Tick.moveBody).filter(circle => Number(circle.cy) <= Viewport.CANVAS_HEIGHT);
+      const expired = s.circleProps.map(Tick.moveBody).filter(circle => Number(circle.cy) > Viewport.CANVAS_HEIGHT - 50);
+      const updatedCircleProps = s.circleProps.map(Tick.moveBody).filter(circle => Number(circle.cy) <= Viewport.CANVAS_HEIGHT - 50);
       const updatedCircleSVGs = s.circleSVGs.filter(svg => document.getElementById(svg.id));
 
       return {
@@ -57,7 +57,6 @@ class CreateCircle implements Action {
     return {
       ...s,
       circleProps: s.circleProps.concat(this.circle),
-      objCount: s.objCount + 1,
     };
   }
 }
@@ -67,7 +66,6 @@ const initialState: State = {
   circleProps: [],
   circleSVGs: [],
   exit: [],
-  objCount: 0,
   gameEnd: false,
   score: 0,
 };

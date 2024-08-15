@@ -5,6 +5,7 @@ export { Constants, Viewport };
 const Constants = {
   TICK_RATE_MS: 10,
   SONG_NAME: "RockinRobin",
+  // SONG_NAME: "SleepingBeauty",
   START_Y: "0",
 } as const;
 
@@ -22,6 +23,10 @@ type ObjectId = Readonly<{ id: string }>
  * Circle type
  */
 type Circle = Readonly<{
+  duration: number,
+  velocity: number,
+  instrument: string,
+  pitch: number,
   user_played: boolean,
   id: string,
   r: string,
@@ -39,7 +44,6 @@ type State = Readonly<{
   circleProps: ReadonlyArray<Circle>,
   circleSVGs: ReadonlyArray<SVGElement>,
   exit: ReadonlyArray<Circle>,
-  objCount: number,
   gameEnd: boolean,
   score: number,
 }>

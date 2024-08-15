@@ -1,5 +1,5 @@
 import { Circle, State, Viewport } from "./types"
-import { attr } from "./util";
+import { attr, playNote } from "./util";
 
 export { updateView }
 
@@ -24,15 +24,20 @@ const updateView = (onFinish: () => void) => {
 
       const curCircle = document.getElementById(circle.id) || createNewCircle();
       attr(curCircle, { ...circle });
-      if (Number(circle.cy) >= Viewport.CANVAS_HEIGHT - 5) {
-        curCircle.remove()
-      }
     }
 
     s.circleProps.forEach(updateBodyView(svg));
 
-    s.exit.map((circle) => {
-      // console.log("circle has expired:", circle)
-    })
+    s.exit
+      .map((circle) => {
+        playNote(circle);
+        return circle;
+      })
+      .forEach(circle => {
+        const circleSVG = document.getElementById(circle.id);
+        if (circleSVG) {
+          circleSVG.remove();
+        }
+      })
   }
 }
