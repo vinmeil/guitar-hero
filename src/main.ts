@@ -18,8 +18,8 @@ import { from, fromEvent, interval, merge, Observable, of, Subscription, timer }
 import { map, filter, scan, mergeMap, delay, takeUntil, take, switchMap } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
-import { CreateCircle, initialState, HitCircle, reduceState, Tick } from "./state";
-import { Action, Constants, State, Viewport } from "./types";
+import { CreateCircle, initialState, HitCircle, reduceState, Tick, KeyUpHold } from "./state";
+import { Action, Circle, Constants, State, Viewport } from "./types";
 import { updateView } from "./view";
 import { generateUniqueId } from "./util";
 
@@ -194,14 +194,22 @@ function getColumn(startTime: number, pitch: number): number {
     })
     
     const gameClock$ = tick$.pipe(map(elapsed => new Tick(elapsed)));
-    const colOneKeyDown$ = key$("keydown", "KeyA").pipe(map(_ => new HitCircle("KeyA")));
-    const colTwoKeyDown$ = key$("keydown", "KeyS").pipe(map(_ => new HitCircle("KeyS")));
-    const colThreeKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new HitCircle("KeyK")));
-    const colFourKeyDown$ = key$("keydown", "KeyL").pipe(map(_ => new HitCircle("KeyL")));
-    // const colOneKeyUp$ = key$("keyup", "KeyA").pipe(map(_ => console.log("green keyup")));
-    // const colTwoKeyUp$ = key$("keyup", "KeyS").pipe(map(_ => console.log("red keyup")));
-    // const colThreeKeyUp$ = key$("keyup", "KeyK").pipe(map(_ => console.log("blue keyup")));
-    // const colFourKeyUp$ = key$("keyup", "KeyL").pipe(map(_ => console.log("yellow keyup")));
+    const colOneKeyDown$ = key$("keydown", "KeyA").pipe(map(_ => new HitCircle("KeyA", "keydown")));
+    const colTwoKeyDown$ = key$("keydown", "KeyS").pipe(map(_ => new HitCircle("KeyS", "keydown")));
+    const colThreeKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new HitCircle("KeyK", "keydown")));
+    const colFourKeyDown$ = key$("keydown", "KeyL").pipe(map(_ => new HitCircle("KeyL", "keydown")));
+    const colOneKeyUp$ = key$("keyup", "KeyA").pipe(map(_ => new KeyUpHold("KeyA")));
+    const colTwoKeyUp$ = key$("keyup", "KeyS").pipe(map(_ => new KeyUpHold("KeyS")));
+    const colThreeKeyUp$ = key$("keyup", "KeyK").pipe(map(_ => new KeyUpHold("KeyK")));
+    const colFourKeyUp$ = key$("keyup", "KeyL").pipe(map(_ => new KeyUpHold("KeyL")));
+    // const colOneKeyDown$ = key$("keydown", "KeyA").pipe(map(_ => new HitCircle("KeyA")));
+    // const colTwoKeyDown$ = key$("keydown", "KeyS").pipe(map(_ => new HitCircle("KeyS")));
+    // const colThreeKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new HitCircle("KeyK")));
+    // const colFourKeyDown$ = key$("keydown", "KeyL").pipe(map(_ => new HitCircle("KeyL")));
+    // const colOneKeyUp$ = key$("keyup", "KeyA").pipe(map(_ => new KeyUpHold("KeyA")));
+    // const colTwoKeyUp$ = key$("keyup", "KeyS").pipe(map(_ => new KeyUpHold("KeyS")));
+    // const colThreeKeyUp$ = key$("keyup", "KeyK").pipe(map(_ => new KeyUpHold("KeyK")));
+    // const colFourKeyUp$ = key$("keyup", "KeyL").pipe(map(_ => new KeyUpHold("KeyL")));
 
     const circleStream$ = from(notes).pipe(
       mergeMap(note => of(note).pipe(delay(note.start * 1000))),
@@ -221,9 +229,16 @@ function getColumn(startTime: number, pitch: number): number {
           cy: Constants.START_Y,
           style: `fill: ${columnColors[column]}`,
           class: "shadow",
+          isHoldNote: note.end - note.start >= 1
+                        ? note.user_played
+                          ? true
+                          : false
+                        : false,
+          tailHeight: ( 1000 / Constants.TICK_RATE_MS ) * Constants.PIXELS_PER_TICK * (note.end - note.start),
         })
       }),
     )
+
 
 
     // TODO: change any to the correct type
@@ -233,10 +248,10 @@ function getColumn(startTime: number, pitch: number): number {
       colTwoKeyDown$,
       colThreeKeyDown$,
       colFourKeyDown$,
-      // colOneKeyUp$,
-      // colTwoKeyUp$,
-      // colThreeKeyUp$,
-      // colFourKeyUp$,
+      colOneKeyUp$,
+      colTwoKeyUp$,
+      colThreeKeyUp$,
+      colFourKeyUp$,
       circleStream$,
     );
 

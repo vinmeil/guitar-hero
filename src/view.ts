@@ -1,5 +1,5 @@
-import { Circle, State, Viewport } from "./types"
-import { attr, playNote } from "./util";
+import { Circle, CircleLine, State, Viewport } from "./types"
+import { attr, playNote, stopNote } from "./util";
 
 export { updateView }
 
@@ -15,18 +15,20 @@ const updateView = (onFinish: () => void) => {
     const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
     HTMLElement;
 
-    const updateBodyView = (svg: HTMLElement) => (circle: Circle) => {
-      function createNewCircle() {
-        const newCircle = document.createElementNS(svg.namespaceURI, "circle") as SVGElement;
-        attr(newCircle, { ...circle });
-        return newCircle;
+    const updateCircleView = (svg: HTMLElement) => (props: Circle | CircleLine) => {
+      function createNewSVG() {
+        const newSVGObject = document.createElementNS(svg.namespaceURI, "circle") as SVGElement;
+        attr(newSVGObject, { ...props });
+        return newSVGObject;
       }
 
-      const curCircle = document.getElementById(circle.id) || createNewCircle();
-      attr(curCircle, { ...circle });
+      const curSVG = document.getElementById(props.id) || createNewSVG();
+      attr(curSVG, { ...props });
     }
 
-    s.circleProps.forEach(updateBodyView(svg));
+    // update view of circles and tails
+    s.circleProps.forEach(updateCircleView(svg));
+    s.tailProps.forEach(updateCircleView(svg));
     const scoreHTML = document.getElementById("scoreText");
     if (scoreHTML) {
       scoreHTML.textContent = `${s.score}`;
@@ -35,6 +37,8 @@ const updateView = (onFinish: () => void) => {
     s.exit
       .map((circle) => {
         if (!circle.userPlayed || circle.circleClicked) {
+        // if (!circle.userPlayed) {
+          console.log("playing note in view")
           playNote(circle);
         }
         return circle;
@@ -45,5 +49,14 @@ const updateView = (onFinish: () => void) => {
           circleSVG.remove();
         }
       })
+
+    if (s.liftedCircles.length > 0) {
+      s.liftedCircles
+        .map(circle => {
+          console.log("stopping note in view")
+          stopNote(circle);
+          return circle;
+        })
+    }
   }
 }
