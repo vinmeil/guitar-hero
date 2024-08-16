@@ -10,8 +10,22 @@ class Tick implements Action {
    * @returns new State
    */
   apply(s: State): State {
-      const expired = s.circleProps.map(Tick.moveBody).filter(circle => (Number(circle.cy) > Viewport.CANVAS_HEIGHT - 30) || circle.circleClicked);
-      const updatedCircleProps = s.circleProps.map(Tick.moveBody).filter(circle => (Number(circle.cy) <= Viewport.CANVAS_HEIGHT - 30));
+      const expired = s.circleProps
+        .map(Tick.moveBody)
+          // userPlayed and !userPlayed have different timings to allow for user played circles
+          // to go past the bottom circles if not clicked, similar to other rhythm games
+        .filter(circle =>
+          ( Number(circle.cy) > Constants.HITCIRCLE_CENTER && !circle.userPlayed ) ||
+          ( Number(circle.cy) > Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA && circle.userPlayed ) ||
+          circle.circleClicked
+        );
+            
+      const updatedCircleProps = s.circleProps
+        .map(Tick.moveBody)
+        .filter(circle =>
+          ( Number(circle.cy) <= Constants.HITCIRCLE_CENTER && !circle.userPlayed ) || 
+          ( Number(circle.cy) <= Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA && circle.userPlayed )
+        );
       const updatedCircleSVGs = s.circleSVGs.filter(svg => document.getElementById(svg.id));
 
       return {
@@ -54,18 +68,19 @@ class HitCircle implements Action {
    * @returns new State
    */
   apply(s: State): State {
-    const col = Constants.COLUMN_KEYS.indexOf(this.key as "KeyD" | "KeyF" | "KeyJ" | "KeyK");
-    const hitCircleCenter = Viewport.CANVAS_HEIGHT - 40;
-    // use +- 25px to account for the radius of the circle
-    const hitCircleRange = 70;
+    const col = Constants.COLUMN_KEYS.indexOf(this.key as "KeyA" | "KeyS" | "KeyK" | "KeyL");
 
     // find circles in hittable range
-    const hittableCircles = s.circleProps.filter(circle => {
-      const cy = Number(circle.cy);
-      return cy >= hitCircleCenter - hitCircleRange && cy <= hitCircleCenter + hitCircleRange && circle.userPlayed;
-    }).filter(circle => {
-      return circle.cx == `${(col + 1) * 20}%`;
-    })
+    const hittableCircles = s.circleProps
+      .filter(circle => {
+        const cy = Number(circle.cy);
+        return cy >= Constants.HITCIRCLE_CENTER - Constants.HITCIRCLE_RANGE &&
+              cy <= Constants.HITCIRCLE_CENTER + Constants.HITCIRCLE_RANGE &&
+              circle.userPlayed;
+      })
+      .filter(circle => 
+        circle.cx == `${(col + 1) * 20}%`
+      )
 
     if (hittableCircles.length === 0) {
       return s;

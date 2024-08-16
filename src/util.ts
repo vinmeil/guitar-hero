@@ -17,7 +17,7 @@ const generateUniqueId = (): string => {
 
 const playNote = (circle: Circle) => {
   const { instrument, pitch, duration, velocity } = circle;
-  const normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / 5; // divide because it is DAMN loud
+  const normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / 10; // divide because it is DAMN loud
 
   Tone.ToneAudioBuffer.loaded().then(() => {
     if (samples[instrument]) {

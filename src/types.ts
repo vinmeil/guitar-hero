@@ -2,21 +2,29 @@
 export type { Circle, ObjectId, State, Action };
 export { Constants, Viewport };
 
-const Constants = {
-  TICK_RATE_MS: 8,
-  // SONG_NAME: "RockinRobin",
-  // SONG_NAME: "ComparedChild",
-  SONG_NAME: "Halcyon",
-  // SONG_NAME: "FreedomDive",
-  // SONG_NAME: "HungarianDanceNo5",
-  // SONG_NAME: "SleepingBeauty",
-  COLUMN_KEYS: ["KeyD", "KeyF", "KeyJ", "KeyK"],
-  START_Y: "0",
-} as const;
-
 const Viewport = {
   CANVAS_WIDTH: 200,
   CANVAS_HEIGHT: 400,
+} as const;
+
+const Constants = {
+  TICK_RATE_MS: 6,
+  // SONG_NAME: "RockinRobin",
+  // SONG_NAME: "ComparedChild",
+  // SONG_NAME: "BusToAnotherWorld",
+  // SONG_NAME: "UnderKids",
+  // SONG_NAME: "RainingAfterAll",
+  // SONG_NAME: "LowAsDirt",
+  SONG_NAME: "TrappedInThePast",
+  // SONG_NAME: "MouIiKai",
+  // SONG_NAME: "FreedomDive",
+  // SONG_NAME: "HungarianDanceNo5",
+  // SONG_NAME: "SleepingBeauty",
+  COLUMN_KEYS: ["KeyA", "KeyS", "KeyK", "KeyL"],
+  HITCIRCLE_CENTER: Viewport.CANVAS_HEIGHT - 50,
+  HITCIRCLE_RANGE: 70,
+  USERPLAYED_CIRCLE_VISIBLE_EXTRA: 20,
+  START_Y: "-15",
 } as const;
 
 /**

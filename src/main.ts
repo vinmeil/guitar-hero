@@ -32,7 +32,7 @@ const Note = {
 
 /** User input */
 
-type Key = "KeyD" | "KeyF" | "KeyJ" | "KeyK";
+type Key = "KeyA" | "KeyS" | "KeyK" | "KeyL";
 
 type Event = "keydown" | "keyup" | "keypress";
 
@@ -194,14 +194,14 @@ function getColumn(startTime: number, pitch: number): number {
     })
     
     const gameClock$ = tick$.pipe(map(elapsed => new Tick(elapsed)));
-    const colOneKeyDown$ = key$("keydown", "KeyD").pipe(map(_ => new HitCircle("KeyD")));
-    const colTwoKeyDown$ = key$("keydown", "KeyF").pipe(map(_ => new HitCircle("KeyF")));
-    const colThreeKeyDown$ = key$("keydown", "KeyJ").pipe(map(_ => new HitCircle("KeyJ")));
-    const colFourKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new HitCircle("KeyK")));
-    // const colOneKeyUp$ = key$("keyup", "KeyD").pipe(map(_ => console.log("green keyup")));
-    // const colTwoKeyUp$ = key$("keyup", "KeyF").pipe(map(_ => console.log("red keyup")));
-    // const colThreeKeyUp$ = key$("keyup", "KeyJ").pipe(map(_ => console.log("blue keyup")));
-    // const colFourKeyUp$ = key$("keyup", "KeyK").pipe(map(_ => console.log("yellow keyup")));
+    const colOneKeyDown$ = key$("keydown", "KeyA").pipe(map(_ => new HitCircle("KeyA")));
+    const colTwoKeyDown$ = key$("keydown", "KeyS").pipe(map(_ => new HitCircle("KeyS")));
+    const colThreeKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new HitCircle("KeyK")));
+    const colFourKeyDown$ = key$("keydown", "KeyL").pipe(map(_ => new HitCircle("KeyL")));
+    // const colOneKeyUp$ = key$("keyup", "KeyA").pipe(map(_ => console.log("green keyup")));
+    // const colTwoKeyUp$ = key$("keyup", "KeyS").pipe(map(_ => console.log("red keyup")));
+    // const colThreeKeyUp$ = key$("keyup", "KeyK").pipe(map(_ => console.log("blue keyup")));
+    // const colFourKeyUp$ = key$("keyup", "KeyL").pipe(map(_ => console.log("yellow keyup")));
 
     const circleStream$ = from(notes).pipe(
       mergeMap(note => of(note).pipe(delay(note.start * 1000))),
