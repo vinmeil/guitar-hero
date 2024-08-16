@@ -14,8 +14,8 @@ const Constants = {
   // SONG_NAME: "BusToAnotherWorld",
   // SONG_NAME: "UnderKids",
   // SONG_NAME: "RainingAfterAll",
-  // SONG_NAME: "LowAsDirt",
-  SONG_NAME: "TrappedInThePast",
+  SONG_NAME: "LowAsDirt",
+  // SONG_NAME: "TrappedInThePast",
   // SONG_NAME: "MouIiKai",
   // SONG_NAME: "FreedomDive",
   // SONG_NAME: "HungarianDanceNo5",
@@ -56,7 +56,6 @@ type Circle = Readonly<{
 type State = Readonly<{
   time: number,
   circleProps: ReadonlyArray<Circle>,
-  circleSVGs: ReadonlyArray<SVGElement>,
   exit: ReadonlyArray<Circle>,
   gameEnd: boolean,
   score: number,

@@ -26,12 +26,10 @@ class Tick implements Action {
           ( Number(circle.cy) <= Constants.HITCIRCLE_CENTER && !circle.userPlayed ) || 
           ( Number(circle.cy) <= Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA && circle.userPlayed )
         );
-      const updatedCircleSVGs = s.circleSVGs.filter(svg => document.getElementById(svg.id));
 
       return {
           ...s,
           circleProps: updatedCircleProps,
-          circleSVGs: updatedCircleSVGs.concat(updatedCircleProps.map(Tick.createCircleSVG).filter((svg) => svg !== undefined)),
           exit: expired,
           time: this.elapsed,
       };
@@ -41,23 +39,6 @@ class Tick implements Action {
     ...circle,
     cy: `${parseInt(circle.cy) + 4}`,
   })
-
-  static createCircleSVG = (circle: Circle): SVGElement | undefined => {
-    if (!circle.userPlayed) {
-      return undefined;
-    }
-
-    if (document.getElementById(circle.id)) {
-      return undefined;
-    }
-
-    const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
-      HTMLElement;
-    const newCircle = document.createElementNS(svg.namespaceURI, "circle") as SVGElement;
-    attr(newCircle, { ...circle });
-    svg.appendChild(newCircle);
-    return newCircle;
-  }
 }
 
 class HitCircle implements Action {
@@ -90,14 +71,12 @@ class HitCircle implements Action {
 
     // new states
     const updatedCircleProps = s.circleProps.filter(circle => circle.id !== circleToRemove.id);
-    const updatedCircleSVGProps = s.circleSVGs.filter(svg => svg.id !== circleToRemove.id);
 
     const newCircle = { ...circleToRemove, circleClicked: true };
 
     return {
       ...s,
       circleProps: updatedCircleProps,
-      circleSVGs: updatedCircleSVGProps,
       exit: s.exit.concat(newCircle),
       score: s.score + 1,
     };
@@ -112,17 +91,35 @@ class CreateCircle implements Action {
    * @returns new State
    */
   apply(s: State): State {
+    const _ = CreateCircle.createCircleSVG(this.circle);
+
     return {
       ...s,
       circleProps: s.circleProps.concat(this.circle),
     };
+  }
+
+  static createCircleSVG = (circle: Circle): SVGElement | undefined => {
+    if (!circle.userPlayed) {
+      return undefined;
+    }
+
+    if (document.getElementById(circle.id)) {
+      return undefined;
+    }
+
+    const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
+      HTMLElement;
+    const newCircle = document.createElementNS(svg.namespaceURI, "circle") as SVGElement;
+    attr(newCircle, { ...circle });
+    svg.appendChild(newCircle);
+    return newCircle;
   }
 }
 
 const initialState: State = {
   time: 0,
   circleProps: [],
-  circleSVGs: [],
   exit: [],
   gameEnd: false,
   score: 0,
