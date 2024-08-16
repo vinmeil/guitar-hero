@@ -1,5 +1,5 @@
 import { Circle, CircleLine, State, Viewport } from "./types"
-import { attr, playNote, stopNote } from "./util";
+import { attr, playNote } from "./util";
 
 export { updateView }
 
@@ -36,8 +36,8 @@ const updateView = (onFinish: () => void) => {
 
     s.exit
       .map((circle) => {
-        if (!circle.userPlayed || circle.circleClicked) {
-        // if (!circle.userPlayed) {
+        // if (!circle.userPlayed || circle.circleClicked) {
+        if (!circle.userPlayed) {
           console.log("playing note in view")
           playNote(circle);
         }
@@ -54,7 +54,7 @@ const updateView = (onFinish: () => void) => {
       s.liftedCircles
         .map(circle => {
           console.log("stopping note in view")
-          stopNote(circle);
+          // stop circle
           return circle;
         })
     }

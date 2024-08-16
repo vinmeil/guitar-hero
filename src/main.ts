@@ -15,13 +15,13 @@
 import "./style.css";
 
 import { from, fromEvent, interval, merge, Observable, of, Subscription, timer } from "rxjs";
-import { map, filter, scan, mergeMap, delay, takeUntil, take, switchMap } from "rxjs/operators";
+import { map, filter, scan, mergeMap, delay, takeUntil, take, switchMap, toArray, tap } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { CreateCircle, initialState, HitCircle, reduceState, Tick, KeyUpHold } from "./state";
 import { Action, Circle, Constants, State, Viewport } from "./types";
 import { updateView } from "./view";
-import { generateUniqueId } from "./util";
+import { generateUniqueId, playNote } from "./util";
 
 /** Constants */
 
@@ -48,52 +48,6 @@ type Event = "keydown" | "keyup" | "keypress";
 //     gameEnd: false,
 // } as const;
 
-/**
- * Updates the state by proceeding with one time step.
- *
- * @param s Current state
- * @returns Updated state
- */
-const tick = (s: State) => s;
-
-/** Rendering (side effects) */
-
-/**
- * Displays a SVG element on the canvas. Brings to foreground.
- * @param elem SVG element to display
- */
-const show = (elem: SVGGraphicsElement) => {
-    elem.setAttribute("visibility", "visible");
-    elem.parentNode!.appendChild(elem);
-};
-
-/**
- * Hides a SVG element on the canvas.
- * @param elem SVG element to hide
- */
-const hide = (elem: SVGGraphicsElement) =>
-    elem.setAttribute("visibility", "hidden");
-
-/**
- * Creates an SVG element with the given properties.
- *
- * See https://developer.mozilla.org/en-US/docs/Web/SVG/Element for valid
- * element names and properties.
- *
- * @param namespace Namespace of the SVG element
- * @param name SVGElement name
- * @param props Properties to set on the SVG element
- * @returns SVG element
- */
-const createSvgElement = (
-    namespace: string | null,
-    name: string,
-    props: Record<string, string> = {},
-) => {
-    const elem = document.createElementNS(namespace, name) as SVGElement;
-    Object.entries(props).forEach(([k, v]) => elem.setAttribute(k, v));
-    return elem;
-};
 
 /**
  * This is the function called on page load. Your main game loop
@@ -194,18 +148,18 @@ function getColumn(startTime: number, pitch: number): number {
     })
     
     const gameClock$ = tick$.pipe(map(elapsed => new Tick(elapsed)));
-    const colOneKeyDown$ = key$("keydown", "KeyA").pipe(map(_ => new HitCircle("KeyA", "keydown")));
-    const colTwoKeyDown$ = key$("keydown", "KeyS").pipe(map(_ => new HitCircle("KeyS", "keydown")));
-    const colThreeKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new HitCircle("KeyK", "keydown")));
-    const colFourKeyDown$ = key$("keydown", "KeyL").pipe(map(_ => new HitCircle("KeyL", "keydown")));
-    const colOneKeyUp$ = key$("keyup", "KeyA").pipe(map(_ => new KeyUpHold("KeyA")));
-    const colTwoKeyUp$ = key$("keyup", "KeyS").pipe(map(_ => new KeyUpHold("KeyS")));
-    const colThreeKeyUp$ = key$("keyup", "KeyK").pipe(map(_ => new KeyUpHold("KeyK")));
-    const colFourKeyUp$ = key$("keyup", "KeyL").pipe(map(_ => new KeyUpHold("KeyL")));
-    // const colOneKeyDown$ = key$("keydown", "KeyA").pipe(map(_ => new HitCircle("KeyA")));
-    // const colTwoKeyDown$ = key$("keydown", "KeyS").pipe(map(_ => new HitCircle("KeyS")));
-    // const colThreeKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new HitCircle("KeyK")));
-    // const colFourKeyDown$ = key$("keydown", "KeyL").pipe(map(_ => new HitCircle("KeyL")));
+    // const colOneKeyDown$ = key$("keydown", "KeyA").pipe(map(_ => new HitCircle("KeyA", "keydown")));
+    // const colTwoKeyDown$ = key$("keydown", "KeyS").pipe(map(_ => new HitCircle("KeyS", "keydown")));
+    // const colThreeKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new HitCircle("KeyK", "keydown")));
+    // const colFourKeyDown$ = key$("keydown", "KeyL").pipe(map(_ => new HitCircle("KeyL", "keydown")));
+    const colOneKeyUp$ = key$("keyup", "KeyA").pipe(map(_ => new KeyUpHold("KeyA", samples)));
+    const colTwoKeyUp$ = key$("keyup", "KeyS").pipe(map(_ => new KeyUpHold("KeyS", samples)));
+    const colThreeKeyUp$ = key$("keyup", "KeyK").pipe(map(_ => new KeyUpHold("KeyK", samples)));
+    const colFourKeyUp$ = key$("keyup", "KeyL").pipe(map(_ => new KeyUpHold("KeyL", samples)));
+    const colOneKeyDown$ = key$("keydown", "KeyA").pipe(map(_ => new HitCircle("KeyA")));
+    const colTwoKeyDown$ = key$("keydown", "KeyS").pipe(map(_ => new HitCircle("KeyS")));
+    const colThreeKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new HitCircle("KeyK")));
+    const colFourKeyDown$ = key$("keydown", "KeyL").pipe(map(_ => new HitCircle("KeyL")));
     // const colOneKeyUp$ = key$("keyup", "KeyA").pipe(map(_ => new KeyUpHold("KeyA")));
     // const colTwoKeyUp$ = key$("keyup", "KeyS").pipe(map(_ => new KeyUpHold("KeyS")));
     // const colThreeKeyUp$ = key$("keyup", "KeyK").pipe(map(_ => new KeyUpHold("KeyK")));
@@ -239,6 +193,12 @@ function getColumn(startTime: number, pitch: number): number {
       }),
     )
 
+    // const createCircleStream$ = circleStream$.pipe(
+    //   map(([createCircles, circles]) => {
+    //     return createCircles;
+    //   })
+    // )
+
 
 
     // TODO: change any to the correct type
@@ -259,9 +219,79 @@ function getColumn(startTime: number, pitch: number): number {
       mergeMap(() => action$)
     );
 
-    const state$: Observable<State> = delayedAction$.pipe( scan(reduceState, initialState) )
+    const state$: Observable<State> = delayedAction$.pipe(
+      scan(reduceState, initialState),
+      map(s => {
+        s.exit.forEach(circle => {
+          if (circle.circleClicked && !circle.isHoldNote) {
+            playNote(circle);
+          }
+        })
+
+        return s;
+      }),
+      map(s => {
+        s.holdCircles.forEach(circle => {
+          if (!circle.circleClicked) {
+            return circle;
+          }
+
+          Tone.ToneAudioBuffer.loaded().then(() => {
+            if (!samples[circle.instrument]) {
+              console.error(`Instrument ${circle.instrument} not found in samples.`);
+              return circle;
+            }
+
+            if (Number(circle.cy) >= Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA) {
+              return circle;
+            }
+
+            const normalizedVelocity = Math.min(Math.max(circle.velocity, 0), 1) / Constants.NOTE_VOLUME_NORMALIZER // divide because it is DAMN loud
+            
+            const attack$ = of(circle).pipe(
+              delay(0)
+            );
+            const duration$ = of(circle).pipe(delay(circle.duration * 1000));
+            
+            ////////////////////////////////////////////////////////////////////////////////////////
+            // i made this at 1 am, i dont even remember why this works
+            const stop$ = merge(
+              fromEvent<KeyboardEvent>(document, 'keyup').pipe(
+                filter(event => {
+                  const keyIndex = Constants.COLUMN_KEYS.indexOf(event.code as "KeyA" | "KeyS" | "KeyK" | "KeyL");
+                  const isCorrectKey = keyIndex !== -1 && Constants.COLUMN_PERCENTAGES[keyIndex] === circle.cx;
+                  console.log(`KeyUp event: ${event.code}, KeyIndex: ${keyIndex}, Circle.cx: ${circle.cx}, IsCorrectKey: ${isCorrectKey}`);
+                  console.log("circle for the thing above:", circle)
+                  return isCorrectKey;
+                })
+              ),
+              duration$
+            );
+
+            // possibly impure
+            attack$.subscribe(() => {
+              samples[circle.instrument].triggerAttack(
+                Tone.Frequency(circle.pitch, "midi").toNote(),
+                Tone.now(),
+                normalizedVelocity
+              );
+            });
+
+            stop$.subscribe(() => {
+              samples[circle.instrument].triggerRelease(
+                Tone.Frequency(circle.pitch, "midi").toNote(),
+                Tone.now()
+              );
+            });
+            ////////////////////////////////////////////////////////////////////////////////////////
+          });
+        })
+        return s
+      })
+    )
     const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe()));
     
+
     }
 
     // The following simply runs your main function on window load.  Make sure to leave it in place.

@@ -80,8 +80,31 @@ class Tick implements Action {
   })
 }
 
+// class KeyUpHold implements Action {
+//   constructor(public readonly key: string) { }
+
+//   /**
+//    * @param s old State
+//    * @returns new State
+//    */
+//   apply(s: State): State {
+//     const holdCircles = s.holdCircles;
+//     const col = Constants.COLUMN_KEYS.indexOf(this.key as "KeyA" | "KeyS" | "KeyK" | "KeyL");
+//     const colPercentage = Constants.COLUMN_PERCENTAGES[col];
+
+//     const circlesToLift = holdCircles
+//                             .filter(circle => circle.cx === colPercentage &&
+//                                               Number(circle.cy) >= Constants.HITCIRCLE_CENTER);
+
+//     return {
+//       ...s,
+//       liftedCircles: s.liftedCircles.concat(circlesToLift),
+//     };
+//   }
+// }
+
 class KeyUpHold implements Action {
-  constructor(public readonly key: string) { }
+  constructor(public readonly key: string, private samples: { [key: string]: Tone.Sampler }) { }
 
   /**
    * @param s old State
@@ -96,6 +119,15 @@ class KeyUpHold implements Action {
                             .filter(circle => circle.cx === colPercentage &&
                                               Number(circle.cy) >= Constants.HITCIRCLE_CENTER);
 
+    circlesToLift.forEach(circle => {
+      if (this.samples[circle.instrument]) {
+        this.samples[circle.instrument].triggerRelease(
+          Tone.Frequency(circle.pitch, "midi").toNote(), // Convert MIDI note to frequency
+          Tone.now() // Release immediately
+        );
+      }
+    });
+
     return {
       ...s,
       liftedCircles: s.liftedCircles.concat(circlesToLift),
@@ -104,7 +136,7 @@ class KeyUpHold implements Action {
 }
 
 class HitCircle implements Action {
-  constructor(public readonly key: string, public readonly keyAction: string) { }
+  constructor(public readonly key: string) { }
 
   /**
    * @param s old State
@@ -133,94 +165,18 @@ class HitCircle implements Action {
 
     // new states
     const updatedCircleProps = s.circleProps.filter(circle => circle.id !== circleToRemove.id);
+    const filteredHoldCircles = s.holdCircles.filter(circle => circle.id !== circleToRemove.id);
     const newCircle = { ...circleToRemove, circleClicked: true };
-    const normalizedVelocity = Math.min(Math.max(newCircle.velocity, 0), 1) / 5; // divide because it is DAMN loud
-    
-    // if (!newCircle.isHoldNote && this.keyAction === "keydown") {
-    //   Tone.ToneAudioBuffer.loaded().then(() => {
-    //     if (samples[newCircle.instrument]) {
-    //       samples[newCircle.instrument].toDestination();
-    //       samples[newCircle.instrument].triggerAttackRelease(
-    //         Tone.Frequency(newCircle.pitch, "midi").toNote(), // Convert MIDI note to frequency
-    //         newCircle.duration, // has to be in seconds
-    //         undefined, // Use default time for note onset
-    //         normalizedVelocity
-    //       );
-    //     }
-    //   })
-    // }
-
-    const note = samples[newCircle.instrument]
-    const now = Tone.now();
-
-    if (newCircle.isHoldNote) {
-      if (this.keyAction === "keydown") {
-        note.triggerAttack(
-          Tone.Frequency(newCircle.pitch, "midi").toNote(), // Convert MIDI note to frequency
-          now, // has to be in seconds
-          normalizedVelocity,
-        );
-      }
-
-      if (this.keyAction === "keyup") {
-        note.triggerRelease(
-          Tone.Frequency(newCircle.pitch, "midi").toNote(), // Convert MIDI note to frequency
-          now, // has to be in seconds
-        );
-      }
-    }
 
     return {
       ...s,
       circleProps: updatedCircleProps,
       exit: s.exit.concat(newCircle),
+      holdCircles: filteredHoldCircles.concat(newCircle),
       score: s.score + 1,
     };
   }
 }
-
-// class HitCircle implements Action {
-//   constructor(public readonly key: string) { }
-
-//   /**
-//    * @param s old State
-//    * @returns new State
-//    */
-//   apply(s: State): State {
-//     const col = Constants.COLUMN_KEYS.indexOf(this.key as "KeyA" | "KeyS" | "KeyK" | "KeyL");
-
-//     // find circles in hittable range
-//     const hittableCircles = s.circleProps
-//       .filter(circle => {
-//         const cy = Number(circle.cy);
-//         return cy >= Constants.HITCIRCLE_CENTER - Constants.HITCIRCLE_RANGE &&
-//               cy <= Constants.HITCIRCLE_CENTER + Constants.HITCIRCLE_RANGE &&
-//               circle.userPlayed;
-//       })
-//       .filter(circle => 
-//         circle.cx == `${(col + 1) * 20}%`
-//       )
-
-//     if (hittableCircles.length === 0) {
-//       return s;
-//     }
-//     // find circle at lowest point in hittable range
-//     const circleToRemove = hittableCircles.reduce((max, circle) => Number(circle.cy) > Number(max.cy) ? circle : max, hittableCircles[0]);
-
-//     // new states
-//     const updatedCircleProps = s.circleProps.filter(circle => circle.id !== circleToRemove.id);
-//     const newCircle = { ...circleToRemove, circleClicked: true };
-
-
-
-//     return {
-//       ...s,
-//       circleProps: updatedCircleProps,
-//       exit: s.exit.concat(newCircle),
-//       score: s.score + 1,
-//     };
-//   }
-// }
 
 class CreateCircle implements Action {
   constructor(public readonly circle: Circle) { }

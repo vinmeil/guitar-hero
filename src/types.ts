@@ -16,12 +16,12 @@ const Constants = {
   // SONG_NAME: "UnderKids",
   // SONG_NAME: "RainingAfterAll",
   // SONG_NAME: "LowAsDirt",
-  // SONG_NAME: "TestHold",
+  SONG_NAME: "TestHold",
   // SONG_NAME: "DifficultMode",
   // SONG_NAME: "TrappedInThePast",
   // SONG_NAME: "MouIiKai",
   // SONG_NAME: "FreedomDive",
-  SONG_NAME: "HungarianDanceNo5",
+  // SONG_NAME: "HungarianDanceNo5",
   // SONG_NAME: "SleepingBeauty",
   COLUMN_KEYS: ["KeyA", "KeyS", "KeyK", "KeyL"],
   COLUMN_COLORS: ["green", "red", "blue", "yellow"],
@@ -31,6 +31,7 @@ const Constants = {
   USERPLAYED_CIRCLE_VISIBLE_EXTRA: 20,
   START_Y: "-15",
   PIXELS_PER_TICK: 4,
+  NOTE_VOLUME_NORMALIZER: 20,
 } as const;
 
 /**
@@ -56,6 +57,7 @@ type Circle = Readonly<{
   class: string,
   tailHeight?: number,
   isHoldNote?: boolean,
+  isLifted?: boolean,
 }>
 
 type CircleLine = Readonly<{
