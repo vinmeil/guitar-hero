@@ -183,12 +183,8 @@ function getColumn(startTime: number, pitch: number): number {
           cy: Constants.START_Y,
           style: `fill: ${columnColors[column]}`,
           class: "shadow",
-          isHoldNote: note.end - note.start >= 1
-                        ? note.user_played
-                          ? true
-                          : false
-                        : false,
-          tailHeight: ( 1000 / Constants.TICK_RATE_MS ) * Constants.PIXELS_PER_TICK * (note.end - note.start),
+          isHoldNote: note.end - note.start >= 1 && note.user_played ? true : false,
+          tailHeight: ( 1000 / Constants.TICK_RATE_MS ) * Constants.PIXELS_PER_TICK * (note.end - note.start) - 50,
         })
       }),
     )
@@ -232,7 +228,7 @@ function getColumn(startTime: number, pitch: number): number {
       }),
       map(s => {
         s.holdCircles.forEach(circle => {
-          if (!circle.circleClicked) {
+          if (!circle.circleClicked || !circle.isHoldNote) {
             return circle;
           }
 
@@ -259,10 +255,7 @@ function getColumn(startTime: number, pitch: number): number {
               fromEvent<KeyboardEvent>(document, 'keyup').pipe(
                 filter(event => {
                   const keyIndex = Constants.COLUMN_KEYS.indexOf(event.code as "KeyA" | "KeyS" | "KeyK" | "KeyL");
-                  const isCorrectKey = keyIndex !== -1 && Constants.COLUMN_PERCENTAGES[keyIndex] === circle.cx;
-                  console.log(`KeyUp event: ${event.code}, KeyIndex: ${keyIndex}, Circle.cx: ${circle.cx}, IsCorrectKey: ${isCorrectKey}`);
-                  console.log("circle for the thing above:", circle)
-                  return isCorrectKey;
+                  return keyIndex !== -1 && Constants.COLUMN_PERCENTAGES[keyIndex] === circle.cx;
                 })
               ),
               duration$

@@ -1,6 +1,6 @@
 import { Tone } from "tone/build/esm/core/Tone";
 
-export type { Circle, CircleLine, ObjectId, State, Action };
+export type { Circle, CircleLine, State, Action };
 export { Constants, Viewport };
 
 const Viewport = {
@@ -11,12 +11,12 @@ const Viewport = {
 const Constants = {
   TICK_RATE_MS: 6,
   // SONG_NAME: "RockinRobin",
-  // SONG_NAME: "ComparedChild",
+  SONG_NAME: "ComparedChild",
   // SONG_NAME: "BusToAnotherWorld",
   // SONG_NAME: "UnderKids",
   // SONG_NAME: "RainingAfterAll",
   // SONG_NAME: "LowAsDirt",
-  SONG_NAME: "TestHold",
+  // SONG_NAME: "TestHold",
   // SONG_NAME: "DifficultMode",
   // SONG_NAME: "TrappedInThePast",
   // SONG_NAME: "MouIiKai",
@@ -35,11 +35,6 @@ const Constants = {
 } as const;
 
 /**
- * ObjectIds help us identify objects and manage objects which timeout (such as bullets)
- */
-type ObjectId = Readonly<{ id: string }>
-
-/**
  * Circle type
  */
 type Circle = Readonly<{
@@ -56,8 +51,7 @@ type Circle = Readonly<{
   style: string,
   class: string,
   tailHeight?: number,
-  isHoldNote?: boolean,
-  isLifted?: boolean,
+  isHoldNote: boolean,
 }>
 
 type CircleLine = Readonly<{
@@ -79,8 +73,6 @@ type State = Readonly<{
   circleProps: ReadonlyArray<Circle>,
   tailProps: ReadonlyArray<CircleLine>,
   holdCircles: ReadonlyArray<Circle>,
-  liftedCircles: ReadonlyArray<Circle>,
-  destinations: ReadonlyArray<any>,
   exit: ReadonlyArray<Circle>,
   gameEnd: boolean,
   score: number,

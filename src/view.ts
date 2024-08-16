@@ -38,7 +38,6 @@ const updateView = (onFinish: () => void) => {
       .map((circle) => {
         // if (!circle.userPlayed || circle.circleClicked) {
         if (!circle.userPlayed) {
-          console.log("playing note in view")
           playNote(circle);
         }
         return circle;
@@ -49,14 +48,5 @@ const updateView = (onFinish: () => void) => {
           circleSVG.remove();
         }
       })
-
-    if (s.liftedCircles.length > 0) {
-      s.liftedCircles
-        .map(circle => {
-          console.log("stopping note in view")
-          // stop circle
-          return circle;
-        })
-    }
   }
 }

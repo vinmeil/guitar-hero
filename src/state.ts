@@ -37,23 +37,12 @@ class Tick implements Action {
       const updatedHoldCircles = s.holdCircles
         .map(Tick.moveCircle)
         .filter(circle =>
-          ( Number(circle.cy) <= Constants.HITCIRCLE_CENTER +
+          ( Number(circle.cy) <= Constants.HITCIRCLE_CENTER + // add length of tail
                                   ( (1000 / Constants.TICK_RATE_MS) *
-                                  Constants.PIXELS_PER_TICK * circle.duration ) )
+                                  Constants.PIXELS_PER_TICK * circle.duration ) &&
+            circle.isHoldNote)
         )
         
-      const updatedLiftedCircles = s.liftedCircles
-        .map(Tick.moveCircle)
-        .filter(circle =>
-          ( Number(circle.cy) <= Constants.HITCIRCLE_CENTER +
-                                 ( (1000 / Constants.TICK_RATE_MS) *
-                                 Constants.PIXELS_PER_TICK * circle.duration ) &&
-          document.getElementById(circle.id) )
-        );
-
-      // console.log("Hold circles", updatedHoldCircles);
-      // console.log("Lifted circles", updatedLiftedCircles);
-
       const updatedTailProps = s.tailProps
         .map(Tick.moveTail);
 
@@ -62,7 +51,6 @@ class Tick implements Action {
           circleProps: updatedCircleProps,
           tailProps: updatedTailProps,
           holdCircles: updatedHoldCircles,
-          liftedCircles: updatedLiftedCircles,
           exit: expired,
           time: this.elapsed,
       };
@@ -80,28 +68,6 @@ class Tick implements Action {
   })
 }
 
-// class KeyUpHold implements Action {
-//   constructor(public readonly key: string) { }
-
-//   /**
-//    * @param s old State
-//    * @returns new State
-//    */
-//   apply(s: State): State {
-//     const holdCircles = s.holdCircles;
-//     const col = Constants.COLUMN_KEYS.indexOf(this.key as "KeyA" | "KeyS" | "KeyK" | "KeyL");
-//     const colPercentage = Constants.COLUMN_PERCENTAGES[col];
-
-//     const circlesToLift = holdCircles
-//                             .filter(circle => circle.cx === colPercentage &&
-//                                               Number(circle.cy) >= Constants.HITCIRCLE_CENTER);
-
-//     return {
-//       ...s,
-//       liftedCircles: s.liftedCircles.concat(circlesToLift),
-//     };
-//   }
-// }
 
 class KeyUpHold implements Action {
   constructor(public readonly key: string, private samples: { [key: string]: Tone.Sampler }) { }
@@ -111,26 +77,8 @@ class KeyUpHold implements Action {
    * @returns new State
    */
   apply(s: State): State {
-    const holdCircles = s.holdCircles;
-    const col = Constants.COLUMN_KEYS.indexOf(this.key as "KeyA" | "KeyS" | "KeyK" | "KeyL");
-    const colPercentage = Constants.COLUMN_PERCENTAGES[col];
-
-    const circlesToLift = holdCircles
-                            .filter(circle => circle.cx === colPercentage &&
-                                              Number(circle.cy) >= Constants.HITCIRCLE_CENTER);
-
-    circlesToLift.forEach(circle => {
-      if (this.samples[circle.instrument]) {
-        this.samples[circle.instrument].triggerRelease(
-          Tone.Frequency(circle.pitch, "midi").toNote(), // Convert MIDI note to frequency
-          Tone.now() // Release immediately
-        );
-      }
-    });
-
     return {
       ...s,
-      liftedCircles: s.liftedCircles.concat(circlesToLift),
     };
   }
 }
@@ -239,8 +187,6 @@ const initialState: State = {
   circleProps: [],
   tailProps: [],
   holdCircles: [],
-  liftedCircles: [],
-  destinations: [],
   exit: [],
   gameEnd: false,
   score: 0,
