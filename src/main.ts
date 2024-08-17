@@ -223,9 +223,9 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
 
     const subscription: Subscription = state$.subscribe(s => {
       // play non hold notes on keydown
-      s.exit.forEach(circle => {
-        if (circle.circleClicked && !circle.isHoldNote) {
-          playNote(circle);
+      s.exit.forEach(obj => {
+        if (obj.circleClicked && !obj.isHoldNote) {
+          playNote(obj);
         }
       })
 

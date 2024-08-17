@@ -37,9 +37,18 @@ const updateView = (onFinish: () => void) => {
     const combo = document.getElementById("comboText");
     if (combo) {
       const comboDigits = s.combo.toString().length - 1;
-      attr(combo, { x: `${96 - (5 * comboDigits)}`})
+      attr(combo, { x: `${96 - (6 * comboDigits)}`})
       combo.textContent = `${s.combo}`;
     }
+
+    console.log("s.tail size", s.tailProps)
+
+    s.exitTails.forEach(line => {
+      const lineSVG = document.getElementById(line.id);
+      if (lineSVG) {
+        lineSVG.remove();
+      }
+    })
 
     s.exit
       .map((circle) => {

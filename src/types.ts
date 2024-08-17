@@ -76,6 +76,7 @@ type State = Readonly<{
   tailProps: ReadonlyArray<CircleLine>,
   holdCircles: ReadonlyArray<Circle>,
   exit: ReadonlyArray<Circle>,
+  exitTails: ReadonlyArray<CircleLine>,
   gameEnd: boolean,
   score: number,
   combo: number,

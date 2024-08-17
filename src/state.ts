@@ -17,7 +17,7 @@ class Tick implements Action {
    * @returns new State
    */
   apply(s: State): State {
-      const expired = s.circleProps
+      const expiredCircles = s.circleProps
         .map(Tick.moveCircle)
           // userPlayed and !userPlayed have different timings to allow for user played circles
           // to go past the bottom circles if not clicked, similar to other rhythm games
@@ -27,7 +27,11 @@ class Tick implements Action {
           circle.circleClicked
         );
 
-      const missed = expired.filter(circle =>
+      const expiredTails = s.tailProps
+        .map(Tick.moveTail)
+        .filter(tail => parseInt(tail.y1) >= Constants.HITCIRCLE_CENTER);
+
+      const missed = expiredCircles.filter(circle =>
         !circle.circleClicked && circle.userPlayed
       );
 
@@ -48,7 +52,8 @@ class Tick implements Action {
         )
         
       const updatedTailProps = s.tailProps
-        .map(Tick.moveTail);
+        .map(Tick.moveTail)
+        .filter(tail => parseInt(tail.y1) < Constants.HITCIRCLE_CENTER);
 
       return {
           ...s,
@@ -56,7 +61,8 @@ class Tick implements Action {
           tailProps: updatedTailProps,
           holdCircles: updatedHoldCircles,
           combo: missed.length === 0 ? s.combo : 0,
-          exit: expired,
+          exit: expiredCircles,
+          exitTails: expiredTails,
           time: this.elapsed,
       };
   }
@@ -68,7 +74,7 @@ class Tick implements Action {
 
   static moveTail = (tail: CircleLine): CircleLine => ({
     ...tail,
-    y1: `${Math.min( parseInt(tail.y1) + Constants.PIXELS_PER_TICK, Constants.HITCIRCLE_CENTER )}`,
+    y1: `${ parseInt(tail.y1) + Constants.PIXELS_PER_TICK }`,
     y2: `${Math.min( parseInt(tail.y2) + Constants.PIXELS_PER_TICK, Constants.HITCIRCLE_CENTER )}`,
   })
 }
@@ -192,6 +198,7 @@ const initialState: State = {
   tailProps: [],
   holdCircles: [],
   exit: [],
+  exitTails: [],
   gameEnd: false,
   score: 0,
   combo: 0,
