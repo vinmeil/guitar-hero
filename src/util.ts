@@ -38,7 +38,8 @@ const playNote = (circle: Circle) => {
 };
 
 const startNote = (circle: Circle) => {
-  const normalizedVelocity = Math.min(Math.max(circle.velocity, 0), 1) / Constants.NOTE_VOLUME_NORMALIZER // divide because it is DAMN loud
+  // for some reason hold notes are very loud, so i made them 10x quieter
+  const normalizedVelocity = Math.min(Math.max(circle.velocity, 0), 1) / (Constants.NOTE_VOLUME_NORMALIZER * 4)
   console.log("trigger attack called", circle)
   samples[circle.instrument].triggerAttack(
     Tone.Frequency(circle.pitch, "midi").toNote(),

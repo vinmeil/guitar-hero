@@ -34,6 +34,13 @@ const updateView = (onFinish: () => void) => {
       scoreHTML.textContent = `${s.score}`;
     }
 
+    const combo = document.getElementById("comboText");
+    if (combo) {
+      const comboDigits = s.combo.toString().length - 1;
+      attr(combo, { x: `${96 - (5 * comboDigits)}`})
+      combo.textContent = `${s.combo}`;
+    }
+
     s.exit
       .map((circle) => {
         // if (!circle.userPlayed || circle.circleClicked) {

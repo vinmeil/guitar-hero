@@ -27,6 +27,10 @@ class Tick implements Action {
           circle.circleClicked
         );
 
+      const missed = expired.filter(circle =>
+        !circle.circleClicked && circle.userPlayed
+      );
+
       const updatedCircleProps = s.circleProps
       .map(Tick.moveCircle)
       .filter(circle =>
@@ -51,6 +55,7 @@ class Tick implements Action {
           circleProps: updatedCircleProps,
           tailProps: updatedTailProps,
           holdCircles: updatedHoldCircles,
+          combo: missed.length === 0 ? s.combo : 0,
           exit: expired,
           time: this.elapsed,
       };
@@ -99,11 +104,9 @@ class HitCircle implements Action {
         const cy = Number(circle.cy);
         return cy >= Constants.HITCIRCLE_CENTER - Constants.HITCIRCLE_RANGE &&
               cy <= Constants.HITCIRCLE_CENTER + Constants.HITCIRCLE_RANGE &&
+              circle.cx == `${(col + 1) * 20}%` &&
               circle.userPlayed;
       })
-      .filter(circle => 
-        circle.cx == `${(col + 1) * 20}%`
-      )
 
     if (hittableCircles.length === 0) {
       return s;
@@ -121,6 +124,7 @@ class HitCircle implements Action {
       circleProps: updatedCircleProps,
       exit: s.exit.concat(newCircle),
       holdCircles: filteredHoldCircles.concat(newCircle),
+      combo: s.combo + 1,
       score: s.score + 1,
     };
   }
@@ -190,6 +194,7 @@ const initialState: State = {
   exit: [],
   gameEnd: false,
   score: 0,
+  combo: 0,
 };
 
 /**

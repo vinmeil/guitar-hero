@@ -11,7 +11,7 @@ const Viewport = {
 const Constants = {
   TICK_RATE_MS: 6,
   // SONG_NAME: "RockinRobin",
-  // SONG_NAME: "ComparedChild",
+  SONG_NAME: "ComparedChild",
   // SONG_NAME: "BusToAnotherWorld",
   // SONG_NAME: "UnderKids",
   // SONG_NAME: "RainingAfterAll",
@@ -20,9 +20,11 @@ const Constants = {
   // SONG_NAME: "DifficultMode",
   // SONG_NAME: "TrappedInThePast",
   // SONG_NAME: "MouIiKai",
+  // SONG_NAME: "ThroughTheFireAndTheFlames_easy",
+  // SONG_NAME: "ThroughTheFireAndTheFlames_hard",
   // SONG_NAME: "FreedomDive",
   // SONG_NAME: "HungarianDanceNo5",
-  SONG_NAME: "SleepingBeauty",
+  // SONG_NAME: "SleepingBeauty",
   COLUMN_KEYS: ["KeyA", "KeyS", "KeyK", "KeyL"],
   COLUMN_COLORS: ["green", "red", "blue", "yellow"],
   COLUMN_PERCENTAGES: ["20%", "40%", "60%", "80%"],
@@ -76,6 +78,7 @@ type State = Readonly<{
   exit: ReadonlyArray<Circle>,
   gameEnd: boolean,
   score: number,
+  combo: number,
 }>
 
 /**

@@ -104,25 +104,48 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     //   return Math.floor(ratio * 4);
     // }
 
-    const lastAssignedColumn: { [startTime: number]: number } = {};
+    // const lastAssignedColumn: { [startTime: number]: number } = {};
 
-function getColumn(startTime: number, pitch: number): number {
-  const columns = [0, 1, 2, 3]; // Assuming 4 columns
-  if (lastAssignedColumn[startTime] !== undefined) {
-    // Remove the last assigned column from the available columns
-    const lastColumn = lastAssignedColumn[startTime];
-    const availableColumns = columns.filter(col => col !== lastColumn);
-    // Assign a new column from the available columns
-    const newColumn = availableColumns[Math.floor(Math.random() * availableColumns.length)];
-    lastAssignedColumn[startTime] = newColumn;
-    return newColumn;
-  } else {
-    // If no column was assigned for this start time, assign a random column
-    const newColumn = columns[Math.floor(Math.random() * columns.length)];
-    lastAssignedColumn[startTime] = newColumn;
-    return newColumn;
-  }
-}
+    // function getColumn(startTime: number, pitch: number): number {
+    //   const columns = [0, 1, 2, 3]; // Assuming 4 columns
+    //   if (lastAssignedColumn[startTime] !== undefined) {
+    //     // Remove the last assigned column from the available columns
+    //     const lastColumn = lastAssignedColumn[startTime];
+    //     const availableColumns = columns.filter(col => col !== lastColumn);
+    //     // Assign a new column from the available columns
+    //     const newColumn = availableColumns[Math.floor(Math.random() * availableColumns.length)];
+    //     lastAssignedColumn[startTime] = newColumn;
+    //     return newColumn;
+    //   } else {
+    //     // If no column was assigned for this start time, assign a random column
+    //     const newColumn = columns[Math.floor(Math.random() * columns.length)];
+    //     lastAssignedColumn[startTime] = newColumn;
+    //     return newColumn;
+    //   }
+    // }
+
+    // FIXME: using mutable variables, change to immutable. this is just so i can play the songs nicely
+    let prev = [0, 0, 0, 0];
+    function getColumn(startTime: number, pitch: number, user_played: boolean): number {
+      const columns = [0, 1, 2, 3]; // Assuming 4 columns
+      const modifier = [-1, 1]
+      const currentTime = startTime; // Assuming startTime is in milliseconds
+      const randomIndex = Math.floor(Math.random() * modifier.length);
+      
+      let counter = 3;
+      let newColumn = columns[Math.floor(Math.random() * columns.length)];
+      while (Math.abs(prev[newColumn] - currentTime) <= 0.150 && counter > 0) {
+        newColumn += modifier[randomIndex] + 4;
+        newColumn %= 4;
+        counter--;
+      }
+
+      if (user_played) {
+        prev[newColumn] = currentTime
+      }
+
+      return newColumn;
+    }
     
     const columnColors = ["green", "red", "blue", "yellow"]
     
@@ -152,6 +175,7 @@ function getColumn(startTime: number, pitch: number): number {
     const colTwoKeyDown$ = key$("keydown", "KeyS").pipe(map(_ => new HitCircle("KeyS")));
     const colThreeKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new HitCircle("KeyK")));
     const colFourKeyDown$ = key$("keydown", "KeyL").pipe(map(_ => new HitCircle("KeyL")));
+
     // const colOneKeyUp$ = key$("keyup", "KeyA").pipe(map(_ => new KeyUpHold("KeyA")));
     // const colTwoKeyUp$ = key$("keyup", "KeyS").pipe(map(_ => new KeyUpHold("KeyS")));
     // const colThreeKeyUp$ = key$("keyup", "KeyK").pipe(map(_ => new KeyUpHold("KeyK")));
@@ -160,8 +184,8 @@ function getColumn(startTime: number, pitch: number): number {
     const circleStream$ = from(notes).pipe(
       mergeMap(note => of(note).pipe(delay(note.start * 1000))),
       map(note => {
-        // const column = getColumn(note.pitch, minPitch, maxPitch);
-        const column = getColumn(note.start, note.pitch);
+        // const column = getColumn(note.start, note.pitch);
+        const column = getColumn(note.start, note.pitch, note.user_played);
         return new CreateCircle({
           velocity: note.velocity,
           duration: note.end - note.start,
@@ -184,12 +208,13 @@ function getColumn(startTime: number, pitch: number): number {
     // TODO: change any to the correct type
 
     const action$ = merge(
-      gameClock$.pipe(
-        mergeWith(colOneKeyDown$, colTwoKeyDown$, colThreeKeyDown$, colFourKeyDown$),
-      ),
+      gameClock$,
+      colOneKeyDown$,
+      colTwoKeyDown$,
+      colThreeKeyDown$,
+      colFourKeyDown$,
       circleStream$
-    )
-
+    );
 
     const state$ = timer(3000).pipe( // add a 3 second delay to allow the instruments to load
       mergeMap(() => action$),
@@ -197,42 +222,35 @@ function getColumn(startTime: number, pitch: number): number {
     );
 
     const subscription: Subscription = state$.subscribe(s => {
+      // play non hold notes on keydown
       s.exit.forEach(circle => {
         if (circle.circleClicked && !circle.isHoldNote) {
           playNote(circle);
         }
       })
 
+      // play hold notes on keydown and stop on keyup
       s.holdCircles.forEach(circle => {
         if (!circle.circleClicked || !circle.isHoldNote) {
           return circle;
         }
 
         Tone.ToneAudioBuffer.loaded().then(() => {
-          if (!samples[circle.instrument] || Number(circle.cy) >= Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA) {
+          if ( !samples[circle.instrument] ||
+               Number(circle.cy) >= Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA ) {
             return circle;
           }
-
-          const start$ = of(circle).pipe(
-            delay(0),
-            take(1)
-          );
-
-          const duration$ = of(circle).pipe(delay(circle.duration * 1000));
           
-          ////////////////////////////////////////////////////////////////////////////////////////
-          // i made this at 1 am, i dont even remember why this works
-          const stop$ = merge(
-            fromEvent<KeyboardEvent>(document, 'keyup').pipe(
-              filter(event => {
-                const keyIndex = Constants.COLUMN_KEYS.indexOf(event.code as "KeyA" | "KeyS" | "KeyK" | "KeyL");
-                return keyIndex !== -1 && Constants.COLUMN_PERCENTAGES[keyIndex] === circle.cx;
-              })
-            ),
-            duration$
-          );
+          const duration$ = of(circle).pipe(delay(circle.duration * 1000));
+          const keyup$ = fromEvent<KeyboardEvent>(document, 'keyup')
+          .pipe( filter(event => {
+            const keyIndex = Constants.COLUMN_KEYS.indexOf(event.code as "KeyA" | "KeyS" | "KeyK" | "KeyL");
+            return keyIndex !== -1 && Constants.COLUMN_PERCENTAGES[keyIndex] === circle.cx;
+          }));
 
-          // possibly impure
+          const start$ = of(circle).pipe(delay(0), take(1));
+          const stop$ = merge(keyup$, duration$);
+
           start$.subscribe(() => {
             startNote(circle);
           });
@@ -240,7 +258,6 @@ function getColumn(startTime: number, pitch: number): number {
           stop$.subscribe(() => {
             stopNote(circle);
           });
-          ////////////////////////////////////////////////////////////////////////////////////////
         });
       })
 
