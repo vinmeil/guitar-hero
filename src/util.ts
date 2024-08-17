@@ -2,7 +2,7 @@ import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { Circle, Constants } from "./types";
 
-export { attr, generateUniqueId, playNote }
+export { attr, generateUniqueId, playNote, startNote, stopNote }
 
 const samples = SampleLibrary.load({
   instruments: SampleLibrary.list,
@@ -36,3 +36,21 @@ const playNote = (circle: Circle) => {
 
   return undefined;
 };
+
+const startNote = (circle: Circle) => {
+  const normalizedVelocity = Math.min(Math.max(circle.velocity, 0), 1) / Constants.NOTE_VOLUME_NORMALIZER // divide because it is DAMN loud
+  console.log("trigger attack called", circle)
+  samples[circle.instrument].triggerAttack(
+    Tone.Frequency(circle.pitch, "midi").toNote(),
+    Tone.now(),
+    normalizedVelocity
+  );
+}
+
+const stopNote = (circle: Circle) => {
+  samples[circle.instrument].triggerRelease(
+    Tone.Frequency(circle.pitch, "midi").toNote(),
+    Tone.now()
+  );
+}
+

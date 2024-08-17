@@ -15,13 +15,13 @@
 import "./style.css";
 
 import { from, fromEvent, interval, merge, Observable, of, Subscription, timer } from "rxjs";
-import { map, filter, scan, mergeMap, delay, takeUntil, take, switchMap, toArray, tap } from "rxjs/operators";
+import { map, filter, scan, mergeMap, delay, takeUntil, take, switchMap, toArray, tap, mergeWith } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { CreateCircle, initialState, HitCircle, reduceState, Tick, KeyUpHold } from "./state";
 import { Action, Circle, Constants, State, Viewport } from "./types";
 import { updateView } from "./view";
-import { generateUniqueId, playNote } from "./util";
+import { generateUniqueId, playNote, startNote, stopNote } from "./util";
 
 /** Constants */
 
@@ -148,14 +148,6 @@ function getColumn(startTime: number, pitch: number): number {
     })
     
     const gameClock$ = tick$.pipe(map(elapsed => new Tick(elapsed)));
-    // const colOneKeyDown$ = key$("keydown", "KeyA").pipe(map(_ => new HitCircle("KeyA", "keydown")));
-    // const colTwoKeyDown$ = key$("keydown", "KeyS").pipe(map(_ => new HitCircle("KeyS", "keydown")));
-    // const colThreeKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new HitCircle("KeyK", "keydown")));
-    // const colFourKeyDown$ = key$("keydown", "KeyL").pipe(map(_ => new HitCircle("KeyL", "keydown")));
-    const colOneKeyUp$ = key$("keyup", "KeyA").pipe(map(_ => new KeyUpHold("KeyA", samples)));
-    const colTwoKeyUp$ = key$("keyup", "KeyS").pipe(map(_ => new KeyUpHold("KeyS", samples)));
-    const colThreeKeyUp$ = key$("keyup", "KeyK").pipe(map(_ => new KeyUpHold("KeyK", samples)));
-    const colFourKeyUp$ = key$("keyup", "KeyL").pipe(map(_ => new KeyUpHold("KeyL", samples)));
     const colOneKeyDown$ = key$("keydown", "KeyA").pipe(map(_ => new HitCircle("KeyA")));
     const colTwoKeyDown$ = key$("keydown", "KeyS").pipe(map(_ => new HitCircle("KeyS")));
     const colThreeKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new HitCircle("KeyK")));
@@ -189,100 +181,71 @@ function getColumn(startTime: number, pitch: number): number {
       }),
     )
 
-    // const createCircleStream$ = circleStream$.pipe(
-    //   map(([createCircles, circles]) => {
-    //     return createCircles;
-    //   })
-    // )
-
-
-
     // TODO: change any to the correct type
-    const action$: Observable<any> = merge(
-      gameClock$,
-      colOneKeyDown$,
-      colTwoKeyDown$,
-      colThreeKeyDown$,
-      colFourKeyDown$,
-      colOneKeyUp$,
-      colTwoKeyUp$,
-      colThreeKeyUp$,
-      colFourKeyUp$,
-      circleStream$,
-    );
 
-    const delayedAction$ = timer(3000).pipe( // add a 3 second delay to allow the instruments to load
-      mergeMap(() => action$)
-    );
+    const action$ = merge(
+      gameClock$.pipe(
+        mergeWith(colOneKeyDown$, colTwoKeyDown$, colThreeKeyDown$, colFourKeyDown$),
+      ),
+      circleStream$
+    )
 
-    const state$: Observable<State> = delayedAction$.pipe(
+
+    const state$ = timer(3000).pipe( // add a 3 second delay to allow the instruments to load
+      mergeMap(() => action$),
       scan(reduceState, initialState),
-      map(s => {
-        s.exit.forEach(circle => {
-          if (circle.circleClicked && !circle.isHoldNote) {
-            playNote(circle);
-          }
-        })
+    );
 
-        return s;
-      }),
-      map(s => {
-        s.holdCircles.forEach(circle => {
-          if (!circle.circleClicked || !circle.isHoldNote) {
+    const subscription: Subscription = state$.subscribe(s => {
+      s.exit.forEach(circle => {
+        if (circle.circleClicked && !circle.isHoldNote) {
+          playNote(circle);
+        }
+      })
+
+      s.holdCircles.forEach(circle => {
+        if (!circle.circleClicked || !circle.isHoldNote) {
+          return circle;
+        }
+
+        Tone.ToneAudioBuffer.loaded().then(() => {
+          if (!samples[circle.instrument] || Number(circle.cy) >= Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA) {
             return circle;
           }
 
-          Tone.ToneAudioBuffer.loaded().then(() => {
-            if (!samples[circle.instrument]) {
-              console.error(`Instrument ${circle.instrument} not found in samples.`);
-              return circle;
-            }
+          const start$ = of(circle).pipe(
+            delay(0),
+            take(1)
+          );
 
-            if (Number(circle.cy) >= Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA) {
-              return circle;
-            }
+          const duration$ = of(circle).pipe(delay(circle.duration * 1000));
+          
+          ////////////////////////////////////////////////////////////////////////////////////////
+          // i made this at 1 am, i dont even remember why this works
+          const stop$ = merge(
+            fromEvent<KeyboardEvent>(document, 'keyup').pipe(
+              filter(event => {
+                const keyIndex = Constants.COLUMN_KEYS.indexOf(event.code as "KeyA" | "KeyS" | "KeyK" | "KeyL");
+                return keyIndex !== -1 && Constants.COLUMN_PERCENTAGES[keyIndex] === circle.cx;
+              })
+            ),
+            duration$
+          );
 
-            const normalizedVelocity = Math.min(Math.max(circle.velocity, 0), 1) / Constants.NOTE_VOLUME_NORMALIZER // divide because it is DAMN loud
-            
-            const attack$ = of(circle).pipe(
-              delay(0)
-            );
-            const duration$ = of(circle).pipe(delay(circle.duration * 1000));
-            
-            ////////////////////////////////////////////////////////////////////////////////////////
-            // i made this at 1 am, i dont even remember why this works
-            const stop$ = merge(
-              fromEvent<KeyboardEvent>(document, 'keyup').pipe(
-                filter(event => {
-                  const keyIndex = Constants.COLUMN_KEYS.indexOf(event.code as "KeyA" | "KeyS" | "KeyK" | "KeyL");
-                  return keyIndex !== -1 && Constants.COLUMN_PERCENTAGES[keyIndex] === circle.cx;
-                })
-              ),
-              duration$
-            );
-
-            // possibly impure
-            attack$.subscribe(() => {
-              samples[circle.instrument].triggerAttack(
-                Tone.Frequency(circle.pitch, "midi").toNote(),
-                Tone.now(),
-                normalizedVelocity
-              );
-            });
-
-            stop$.subscribe(() => {
-              samples[circle.instrument].triggerRelease(
-                Tone.Frequency(circle.pitch, "midi").toNote(),
-                Tone.now()
-              );
-            });
-            ////////////////////////////////////////////////////////////////////////////////////////
+          // possibly impure
+          start$.subscribe(() => {
+            startNote(circle);
           });
-        })
-        return s
+
+          stop$.subscribe(() => {
+            stopNote(circle);
+          });
+          ////////////////////////////////////////////////////////////////////////////////////////
+        });
       })
-    )
-    const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe()));
+
+      updateView(() => subscription.unsubscribe())(s)
+    });
     
 
     }
