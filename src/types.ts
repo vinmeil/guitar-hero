@@ -1,6 +1,6 @@
 import { Tone } from "tone/build/esm/core/Tone";
 
-export type { Circle, CircleLine, State, Action };
+export type { Circle, CircleLine, State, Action, NoteType };
 export { Constants, Viewport };
 
 const Viewport = {
@@ -36,22 +36,29 @@ const Constants = {
   NOTE_VOLUME_NORMALIZER: 20,
 } as const;
 
+
+type NoteType = Readonly<{
+  userPlayed: boolean,
+  instrument: string,
+  velocity: number,
+  pitch: number,
+  start: number,
+  end: number,
+  duration: number,
+}>
+
 /**
  * Circle type
  */
 type Circle = Readonly<{
-  duration: number,
-  velocity: number,
-  instrument: string,
-  pitch: number,
-  userPlayed: boolean,
-  circleClicked: boolean,
   id: string,
   r: string,
   cx: string,
   cy: string,
   style: string,
   class: string,
+  note: NoteType,
+  circleClicked: boolean,
   tailHeight?: number,
   isHoldNote: boolean,
 }>
@@ -73,6 +80,7 @@ type CircleLine = Readonly<{
 type State = Readonly<{
   time: number,
   circleProps: ReadonlyArray<Circle>,
+  bgCircleProps: ReadonlyArray<Circle>,
   tailProps: ReadonlyArray<CircleLine>,
   holdCircles: ReadonlyArray<Circle>,
   exit: ReadonlyArray<Circle>,

@@ -34,6 +34,7 @@ const updateView = (onFinish: () => void) => {
       scoreHTML.textContent = `${s.score}`;
     }
 
+    // update combo
     const combo = document.getElementById("comboText");
     if (combo) {
       const comboDigits = s.combo.toString().length - 1;
@@ -41,11 +42,13 @@ const updateView = (onFinish: () => void) => {
       combo.textContent = `${s.combo}`;
     }
 
+    // update highest combo
     const highestCombo = document.getElementById("highestComboText");
     if (highestCombo) {
       highestCombo.textContent = `${s.highestCombo}`;
     }
 
+    // update tails
     s.exitTails.forEach(line => {
       const lineSVG = document.getElementById(line.id);
       if (lineSVG) {
@@ -53,9 +56,10 @@ const updateView = (onFinish: () => void) => {
       }
     })
 
+    // update circles
     s.exit
       .map((circle) => {
-        if (!circle.userPlayed) {
+        if (!circle.note.userPlayed) {
           playNote(circle);
         }
         return circle;

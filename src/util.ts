@@ -18,7 +18,8 @@ const generateUniqueId = (): string => {
 };
 
 const playNote = (circle: Circle) => {
-  const { instrument, pitch, duration, velocity, isHoldNote } = circle;
+  console.log("playNote")
+  const { instrument, pitch, duration, velocity } = circle.note;
   const normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / Constants.NOTE_VOLUME_NORMALIZER // divide because it is DAMN loud
   
   Tone.ToneAudioBuffer.loaded().then(() => {
@@ -34,24 +35,27 @@ const playNote = (circle: Circle) => {
       console.error(`Instrument ${instrument} not found in samples.`);
     }
   });
-
+  
   return undefined;
 };
 
 const startNote = (circle: Circle) => {
+  console.log("startNote")
+  const { velocity, instrument, pitch } = circle.note;
   // for some reason hold notes are very loud, so i made them 10x quieter
-  const normalizedVelocity = Math.min(Math.max(circle.velocity, 0), 1) / (Constants.NOTE_VOLUME_NORMALIZER * 4)
+  const normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / (Constants.NOTE_VOLUME_NORMALIZER * 4)
   console.log("trigger attack called", circle)
-  samples[circle.instrument].triggerAttack(
-    Tone.Frequency(circle.pitch, "midi").toNote(),
+  samples[instrument].triggerAttack(
+    Tone.Frequency(pitch, "midi").toNote(),
     Tone.now(),
     normalizedVelocity
   );
 }
 
 const stopNote = (circle: Circle) => {
-  samples[circle.instrument].triggerRelease(
-    Tone.Frequency(circle.pitch, "midi").toNote(),
+  const { instrument, pitch } = circle.note;
+  samples[instrument].triggerRelease(
+    Tone.Frequency(pitch, "midi").toNote(),
     Tone.now()
   );
 }

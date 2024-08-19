@@ -15,34 +15,40 @@ class Tick implements Action {
       const movedCircleProps = s.circleProps.map(Tick.moveCircle)
       const movedTailProps = s.tailProps.map(Tick.moveTail)
       const movedHoldCircles = s.holdCircles.map(Tick.moveCircle)
+      const movedBgCircleProps = s.bgCircleProps.map(Tick.moveCircle)
 
       const outOfBounds = (circle: Circle): boolean => (
         // userPlayed and !userPlayed have different timings to allow for user played circles
-        ( Number(circle.cy) > Constants.HITCIRCLE_CENTER && !circle.userPlayed ) ||
-        ( Number(circle.cy) > Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA && circle.userPlayed )
+        ( Number(circle.cy) > Constants.HITCIRCLE_CENTER && !circle.note.userPlayed ) ||
+        ( Number(circle.cy) > Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA && circle.note.userPlayed )
       );
         
-      const expiredCircles = movedCircleProps.filter(circle => outOfBounds(circle) || circle.circleClicked);
-      const updatedCircleProps = movedCircleProps.filter(not(outOfBounds));
-      const updatedTailProps = movedTailProps.filter(tail => parseInt(tail.y1) < Constants.HITCIRCLE_CENTER);
-      const expiredTails = movedTailProps.filter(tail => parseInt(tail.y1) >= Constants.HITCIRCLE_CENTER);
-      const missed = expiredCircles.find(circle => !circle.circleClicked && circle.userPlayed);
+      const expiredCircles = movedCircleProps.filter(circle => outOfBounds(circle) || circle.circleClicked),
+            expiredBgCircles = movedBgCircleProps.filter(outOfBounds),
+            updatedCircleProps = movedCircleProps.filter(not(outOfBounds)),
+            updatedBgCircleProps = movedBgCircleProps.filter(not(outOfBounds)),
+            updatedTailProps = movedTailProps.filter(tail => parseInt(tail.y1) < Constants.HITCIRCLE_CENTER),
+            expiredTails = movedTailProps.filter(tail => parseInt(tail.y1) >= Constants.HITCIRCLE_CENTER),
+            missed = expiredCircles.find(circle => !circle.circleClicked && circle.note.userPlayed);
+
+      console.log(expiredBgCircles)
 
       const updatedHoldCircles = movedHoldCircles.filter(circle =>
         ( Number(circle.cy) <= Constants.HITCIRCLE_CENTER + // add length of tail
                                 ( (1000 / Constants.TICK_RATE_MS) *
-                                Constants.PIXELS_PER_TICK * circle.duration ) &&
+                                Constants.PIXELS_PER_TICK * circle.note.duration ) &&
           circle.isHoldNote )
       )
         
       return {
           ...s,
           circleProps: updatedCircleProps,
+          bgCircleProps: updatedBgCircleProps,
           tailProps: updatedTailProps,
           holdCircles: updatedHoldCircles,
           combo: missed ? 0 : s.combo,
           highestCombo: Math.max(s.combo, s.highestCombo),
-          exit: expiredCircles,
+          exit: expiredCircles.concat(expiredBgCircles),
           exitTails: expiredTails,
           time: this.elapsed,
       };
@@ -98,7 +104,7 @@ class HitCircle implements Action {
         return  cy >= Constants.HITCIRCLE_CENTER - Constants.HITCIRCLE_RANGE &&
                 cy <= Constants.HITCIRCLE_CENTER + Constants.HITCIRCLE_RANGE + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA &&
                 circle.cx == `${(col + 1) * 20}%` &&
-                circle.userPlayed;
+                circle.note.userPlayed;
       });
 
     if (!lowestCircleInColumn) {
@@ -129,17 +135,19 @@ class CreateCircle implements Action {
    */
   apply(s: State): State {
     const tail = CreateCircle.createCircleSVG(this.circle);
+    const isUserPlayed = this.circle.note.userPlayed;
 
     return {
       ...s,
-      circleProps: s.circleProps.concat(this.circle),
+      circleProps: isUserPlayed ? s.circleProps.concat(this.circle) : s.circleProps,
+      bgCircleProps: !isUserPlayed ? s.bgCircleProps.concat(this.circle) : s.bgCircleProps,
       tailProps: tail ? s.tailProps.concat(tail) : s.tailProps,
-      holdCircles: this.circle.isHoldNote && this.circle.userPlayed ? s.holdCircles.concat(this.circle) : s.holdCircles,
+      holdCircles: this.circle.isHoldNote && this.circle.note.userPlayed ? s.holdCircles.concat(this.circle) : s.holdCircles,
     };
   }
 
   static createCircleSVG = (circle: Circle): CircleLine | undefined => {
-    if (!circle.userPlayed) {
+    if (!circle.note.userPlayed) {
       return undefined;
     }
 
@@ -179,6 +187,7 @@ class CreateCircle implements Action {
 const initialState: State = {
   time: 0,
   circleProps: [],
+  bgCircleProps: [],
   tailProps: [],
   holdCircles: [],
   exit: [],

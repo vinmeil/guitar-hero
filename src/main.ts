@@ -19,7 +19,7 @@ import { map, filter, scan, mergeMap, delay, takeUntil, take, switchMap, toArray
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { CreateCircle, initialState, HitCircle, reduceState, Tick, KeyUpHold } from "./state";
-import { Action, Circle, Constants, State, Viewport } from "./types";
+import { Action, Circle, Constants, NoteType, State, Viewport } from "./types";
 import { updateView } from "./view";
 import { generateUniqueId, playNote, startNote, stopNote } from "./util";
 
@@ -113,7 +113,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
 
     // FIXME: using mutable variables, change to immutable. this is just so i can play the songs nicely
     let prev = [0, 0, 0, 0];
-    function getColumn(startTime: number, pitch: number, user_played: boolean): number {
+    function getColumn(startTime: number, pitch: number, userPlayed: boolean): number {
       const columns = [0, 1, 2, 3]; // Assuming 4 columns
       const modifier = [-1, 1]
       const currentTime = startTime; // Assuming startTime is in milliseconds
@@ -127,7 +127,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
         counter--;
       }
 
-      if (user_played) {
+      if (userPlayed) {
         prev[newColumn] = currentTime
       }
 
@@ -145,15 +145,16 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     const maxPitch = Math.max(...pitches);
     
     // turn everything to objects so its easier
-    const notes = values.map((line) => {
+    const notes: NoteType[] = values.map((line) => {
       const splitLine = line.split(",");
       return {
-        user_played: splitLine[0].toLowerCase() === "true",
+        userPlayed: splitLine[0].toLowerCase() === "true",
         instrument: splitLine[1],
         velocity: Number(splitLine[2]),
         pitch: Number(splitLine[3]),
         start: Number(splitLine[4]),
         end: Number(splitLine[5]),
+        duration: Number(splitLine[5]) - Number(splitLine[4]),
       } as const
     })
     
@@ -172,21 +173,17 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       mergeMap(note => of(note).pipe(delay(note.start * 1000))),
       map(note => {
         // const column = getColumn(note.start, note.pitch);
-        const column = getColumn(note.start, note.pitch, note.user_played);
+        const column = getColumn(note.start, note.pitch, note.userPlayed);
         return new CreateCircle({
-          velocity: note.velocity,
-          duration: note.end - note.start,
-          instrument: note.instrument,
-          pitch: note.pitch,
-          userPlayed: note.user_played,
-          circleClicked: false,
           id: generateUniqueId(),
           r: `${Note.RADIUS}`,
           cx: `${((column + 1) * 20)}%`, // taken from examples above
           cy: Constants.START_Y,
           style: `fill: ${columnColors[column]}`,
           class: "shadow",
-          isHoldNote: note.end - note.start >= 1 && note.user_played ? true : false,
+          note: note,
+          circleClicked: false,
+          isHoldNote: note.end - note.start >= 1 && note.userPlayed ? true : false,
           tailHeight: ( 1000 / Constants.TICK_RATE_MS ) * Constants.PIXELS_PER_TICK * (note.end - note.start) - 50,
         })
       }),
@@ -223,12 +220,12 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
         }
 
         Tone.ToneAudioBuffer.loaded().then(() => {
-          if ( !samples[circle.instrument] ||
+          if ( !samples[circle.note.instrument] ||
                Number(circle.cy) >= Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA ) {
             return circle;
           }
           
-          const duration$ = of(circle).pipe(delay(circle.duration * 1000));
+          const duration$ = of(circle).pipe(delay(circle.note.duration * 1000));
           const keyup$ = fromEvent<KeyboardEvent>(document, 'keyup')
           .pipe( filter(event => {
             const keyIndex = Constants.COLUMN_KEYS.indexOf(event.code as "KeyA" | "KeyS" | "KeyK" | "KeyL");
