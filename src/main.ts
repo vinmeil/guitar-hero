@@ -15,7 +15,7 @@
 import "./style.css";
 
 import { from, fromEvent, interval, merge, Observable, of, Subscription, timer } from "rxjs";
-import { map, filter, scan, mergeMap, delay, takeUntil, take, switchMap, toArray, tap, mergeWith } from "rxjs/operators";
+import { map, filter, scan, mergeMap, delay, takeUntil, take, switchMap, toArray, tap, mergeWith, last } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { CreateCircle, initialState, HitCircle, reduceState, Tick, KeyUpHold } from "./state";
@@ -35,19 +35,6 @@ const Note = {
 type Key = "KeyA" | "KeyS" | "KeyK" | "KeyL";
 
 type Event = "keydown" | "keyup" | "keypress";
-
-/** Utility functions */
-
-/** State processing */
-
-// type State = Readonly<{
-//     gameEnd: boolean;
-// }>;
-
-// const initialState: State = {
-//     gameEnd: false,
-// } as const;
-
 
 /**
  * This is the function called on page load. Your main game loop

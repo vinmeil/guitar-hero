@@ -41,7 +41,10 @@ const updateView = (onFinish: () => void) => {
       combo.textContent = `${s.combo}`;
     }
 
-    console.log("s.tail size", s.tailProps)
+    const highestCombo = document.getElementById("highestComboText");
+    if (highestCombo) {
+      highestCombo.textContent = `${s.highestCombo}`;
+    }
 
     s.exitTails.forEach(line => {
       const lineSVG = document.getElementById(line.id);
@@ -52,7 +55,6 @@ const updateView = (onFinish: () => void) => {
 
     s.exit
       .map((circle) => {
-        // if (!circle.userPlayed || circle.circleClicked) {
         if (!circle.userPlayed) {
           playNote(circle);
         }
@@ -64,5 +66,14 @@ const updateView = (onFinish: () => void) => {
           circleSVG.remove();
         }
       })
+
+
+    if (s.gameEnd) {
+      const gameOver = document.getElementById("gameOver");
+      if (gameOver) {
+        attr(gameOver, { visibility: "visible" });
+      }
+      onFinish();
+    }
   }
 }

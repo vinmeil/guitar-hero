@@ -2,7 +2,7 @@ import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { Circle, Constants } from "./types";
 
-export { attr, generateUniqueId, playNote, startNote, stopNote }
+export { attr, generateUniqueId, playNote, startNote, stopNote, not }
 
 const samples = SampleLibrary.load({
   instruments: SampleLibrary.list,
@@ -11,6 +11,7 @@ const samples = SampleLibrary.load({
 
 // taken from asteroids example
 const attr = (e: Element, o: { [p: string]: unknown }) => { for (const k in o) e.setAttribute(k, String(o[k])) }
+const not = <T>(f: (x: T) => boolean) => (x: T) => !f(x)
 
 const generateUniqueId = (): string => {
   return `circle-${Date.now()} - ${Math.floor(Math.random() * 1000)}`;

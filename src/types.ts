@@ -11,7 +11,7 @@ const Viewport = {
 const Constants = {
   TICK_RATE_MS: 6,
   // SONG_NAME: "RockinRobin",
-  SONG_NAME: "ComparedChild",
+  // SONG_NAME: "ComparedChild",
   // SONG_NAME: "BusToAnotherWorld",
   // SONG_NAME: "UnderKids",
   // SONG_NAME: "RainingAfterAll",
@@ -21,7 +21,7 @@ const Constants = {
   // SONG_NAME: "TrappedInThePast",
   // SONG_NAME: "MouIiKai",
   // SONG_NAME: "ThroughTheFireAndTheFlames_easy",
-  // SONG_NAME: "ThroughTheFireAndTheFlames_hard",
+  SONG_NAME: "ThroughTheFireAndTheFlames_hard",
   // SONG_NAME: "FreedomDive",
   // SONG_NAME: "HungarianDanceNo5",
   // SONG_NAME: "SleepingBeauty",
@@ -80,6 +80,7 @@ type State = Readonly<{
   gameEnd: boolean,
   score: number,
   combo: number,
+  highestCombo: number,
 }>
 
 /**

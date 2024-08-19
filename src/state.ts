@@ -1,14 +1,9 @@
 import { SampleLibrary } from "./tonejs-instruments";
 import { Action, Circle, CircleLine, Constants, State, Viewport } from "./types";
-import { attr, generateUniqueId, playNote } from "./util";
+import { attr, generateUniqueId, not, playNote } from "./util";
 import * as Tone from "tone";
 
 export { Tick, CreateCircle, reduceState, initialState, HitCircle, KeyUpHold };
-
-const samples = SampleLibrary.load({
-  instruments: SampleLibrary.list,
-  baseUrl: "samples/",
-});
 
 class Tick implements Action {
   constructor(public readonly elapsed: number) { }
@@ -17,66 +12,59 @@ class Tick implements Action {
    * @returns new State
    */
   apply(s: State): State {
-      const expiredCircles = s.circleProps
-        .map(Tick.moveCircle)
-          // userPlayed and !userPlayed have different timings to allow for user played circles
-          // to go past the bottom circles if not clicked, similar to other rhythm games
-        .filter(circle =>
-          ( Number(circle.cy) > Constants.HITCIRCLE_CENTER && !circle.userPlayed ) ||
-          ( Number(circle.cy) > Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA && circle.userPlayed ) ||
-          circle.circleClicked
-        );
+      const movedCircleProps = s.circleProps.map(Tick.moveCircle)
+      const movedTailProps = s.tailProps.map(Tick.moveTail)
+      const movedHoldCircles = s.holdCircles.map(Tick.moveCircle)
 
-      const expiredTails = s.tailProps
-        .map(Tick.moveTail)
-        .filter(tail => parseInt(tail.y1) >= Constants.HITCIRCLE_CENTER);
-
-      const missed = expiredCircles.filter(circle =>
-        !circle.circleClicked && circle.userPlayed
-      );
-
-      const updatedCircleProps = s.circleProps
-      .map(Tick.moveCircle)
-      .filter(circle =>
-        ( Number(circle.cy) <= Constants.HITCIRCLE_CENTER && !circle.userPlayed ) || 
-        ( Number(circle.cy) <= Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA && circle.userPlayed )
+      const outOfBounds = (circle: Circle): boolean => (
+        // userPlayed and !userPlayed have different timings to allow for user played circles
+        ( Number(circle.cy) > Constants.HITCIRCLE_CENTER && !circle.userPlayed ) ||
+        ( Number(circle.cy) > Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA && circle.userPlayed )
       );
         
-      const updatedHoldCircles = s.holdCircles
-        .map(Tick.moveCircle)
-        .filter(circle =>
-          ( Number(circle.cy) <= Constants.HITCIRCLE_CENTER + // add length of tail
-                                  ( (1000 / Constants.TICK_RATE_MS) *
-                                  Constants.PIXELS_PER_TICK * circle.duration ) &&
-            circle.isHoldNote)
-        )
-        
-      const updatedTailProps = s.tailProps
-        .map(Tick.moveTail)
-        .filter(tail => parseInt(tail.y1) < Constants.HITCIRCLE_CENTER);
+      const expiredCircles = movedCircleProps.filter(circle => outOfBounds(circle) || circle.circleClicked);
+      const updatedCircleProps = movedCircleProps.filter(not(outOfBounds));
+      const updatedTailProps = movedTailProps.filter(tail => parseInt(tail.y1) < Constants.HITCIRCLE_CENTER);
+      const expiredTails = movedTailProps.filter(tail => parseInt(tail.y1) >= Constants.HITCIRCLE_CENTER);
+      const missed = expiredCircles.find(circle => !circle.circleClicked && circle.userPlayed);
 
+      const updatedHoldCircles = movedHoldCircles.filter(circle =>
+        ( Number(circle.cy) <= Constants.HITCIRCLE_CENTER + // add length of tail
+                                ( (1000 / Constants.TICK_RATE_MS) *
+                                Constants.PIXELS_PER_TICK * circle.duration ) &&
+          circle.isHoldNote )
+      )
+        
       return {
           ...s,
           circleProps: updatedCircleProps,
           tailProps: updatedTailProps,
           holdCircles: updatedHoldCircles,
-          combo: missed.length === 0 ? s.combo : 0,
+          combo: missed ? 0 : s.combo,
+          highestCombo: Math.max(s.combo, s.highestCombo),
           exit: expiredCircles,
           exitTails: expiredTails,
           time: this.elapsed,
       };
   }
 
-  static moveCircle = (circle: Circle): Circle => ({
-    ...circle,
-    cy: `${parseInt(circle.cy) + Constants.PIXELS_PER_TICK}`,
-  })
+  static moveCircle = (circle: Circle): Circle => {
+    const newCy = Number(circle.cy) + Constants.PIXELS_PER_TICK;
+    return {
+      ...circle,
+      cy: `${newCy}`,
+    }
+  }
 
-  static moveTail = (tail: CircleLine): CircleLine => ({
-    ...tail,
-    y1: `${ parseInt(tail.y1) + Constants.PIXELS_PER_TICK }`,
-    y2: `${Math.min( parseInt(tail.y2) + Constants.PIXELS_PER_TICK, Constants.HITCIRCLE_CENTER )}`,
-  })
+  static moveTail = (tail: CircleLine): CircleLine => {
+    const newY1 = parseInt(tail.y1) + Constants.PIXELS_PER_TICK;
+    const newY2 = Math.min(parseInt(tail.y2) + Constants.PIXELS_PER_TICK, Constants.HITCIRCLE_CENTER);
+    return {
+      ...tail,
+      y1: `${newY1}`,
+      y2: `${newY2}`,
+    };
+  }
 }
 
 
@@ -103,27 +91,23 @@ class HitCircle implements Action {
    */
   apply(s: State): State {
     const col = Constants.COLUMN_KEYS.indexOf(this.key as "KeyA" | "KeyS" | "KeyK" | "KeyL");
-
-    // find circles in hittable range
-    const hittableCircles = s.circleProps
-      .filter(circle => {
+    
+    const lowestCircleInColumn = s.circleProps
+      .find(circle => {
         const cy = Number(circle.cy);
-        return cy >= Constants.HITCIRCLE_CENTER - Constants.HITCIRCLE_RANGE &&
-              cy <= Constants.HITCIRCLE_CENTER + Constants.HITCIRCLE_RANGE &&
-              circle.cx == `${(col + 1) * 20}%` &&
-              circle.userPlayed;
-      })
+        return  cy >= Constants.HITCIRCLE_CENTER - Constants.HITCIRCLE_RANGE &&
+                cy <= Constants.HITCIRCLE_CENTER + Constants.HITCIRCLE_RANGE + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA &&
+                circle.cx == `${(col + 1) * 20}%` &&
+                circle.userPlayed;
+      });
 
-    if (hittableCircles.length === 0) {
+    if (!lowestCircleInColumn) {
       return s;
     }
-    // find circle at lowest point in hittable range
-    const circleToRemove = hittableCircles.reduce((max, circle) => Number(circle.cy) > Number(max.cy) ? circle : max, hittableCircles[0]);
 
-    // new states
-    const updatedCircleProps = s.circleProps.filter(circle => circle.id !== circleToRemove.id);
-    const filteredHoldCircles = s.holdCircles.filter(circle => circle.id !== circleToRemove.id);
-    const newCircle = { ...circleToRemove, circleClicked: true };
+    const updatedCircleProps = s.circleProps.filter(circle => circle.id !== lowestCircleInColumn.id);
+    const filteredHoldCircles = s.holdCircles.filter(circle => circle.id !== lowestCircleInColumn.id);
+    const newCircle = { ...lowestCircleInColumn, circleClicked: true };
 
     return {
       ...s,
@@ -202,6 +186,7 @@ const initialState: State = {
   gameEnd: false,
   score: 0,
   combo: 0,
+  highestCombo: 0,
 };
 
 /**
