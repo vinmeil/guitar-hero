@@ -21,7 +21,7 @@ import { SampleLibrary } from "./tonejs-instruments";
 import { CreateCircle, initialState, HitCircle, reduceState, Tick, KeyUpHold } from "./state";
 import { Action, Circle, Constants, NoteType, State, Viewport } from "./types";
 import { updateView } from "./view";
-import { generateUniqueId, playNote, startNote, stopNote } from "./util";
+import { generateUniqueId, playNote } from "./util";
 
 /** Constants */
 
@@ -206,18 +206,13 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     );
 
     const subscription: Subscription = state$.subscribe(s => {
-      // play non hold notes on keydown
-      s.exit.forEach(obj => {
-        if (obj.circleClicked && !obj.isHoldNote) {
-          playNote(obj);
-        }
-      })
-
       // play hold notes on keydown and stop on keyup
       s.holdCircles.forEach(circle => {
-        if (!circle.circleClicked || !circle.isHoldNote) {
+        if (!circle.circleClicked || !circle.isHoldNote) { // somehow non hold notes are getting here
           return circle;
         }
+
+        const { velocity, instrument, pitch } = circle.note;
 
         Tone.ToneAudioBuffer.loaded().then(() => {
           if ( !samples[circle.note.instrument] ||
@@ -225,22 +220,30 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
             return circle;
           }
           
-          const duration$ = of(circle).pipe(delay(circle.note.duration * 1000));
-          const keyup$ = fromEvent<KeyboardEvent>(document, 'keyup')
-          .pipe( filter(event => {
-            const keyIndex = Constants.COLUMN_KEYS.indexOf(event.code as "KeyA" | "KeyS" | "KeyK" | "KeyL");
-            return keyIndex !== -1 && Constants.COLUMN_PERCENTAGES[keyIndex] === circle.cx;
-          }));
+          const duration$ = of(circle).pipe(delay(circle.note.duration * 1000)),
+                keyup$ = fromEvent<KeyboardEvent>(document, 'keyup')
+                  .pipe( filter(event => {
+                    const keyIndex = Constants.COLUMN_KEYS.indexOf(event.code as "KeyA" | "KeyS" | "KeyK" | "KeyL");
+                    return keyIndex !== -1 && Constants.COLUMN_PERCENTAGES[keyIndex] === circle.cx;
+                  }));
 
-          const start$ = of(circle).pipe(delay(0), take(1));
-          const stop$ = merge(keyup$, duration$);
+          const start$ = of(circle).pipe(delay(0), take(1)),
+                stop$ = merge(keyup$, duration$),
+                normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / (Constants.NOTE_VOLUME_NORMALIZER * 4);
 
+          // putting these into their own functions in util.ts breaks it
           start$.subscribe(() => {
-            startNote(circle);
-          });
+            samples[instrument].triggerAttack(
+              Tone.Frequency(pitch, "midi").toNote(),
+              Tone.now(),
+              normalizedVelocity
+          )});
 
           stop$.subscribe(() => {
-            stopNote(circle);
+            samples[instrument].triggerRelease(
+              Tone.Frequency(pitch, "midi").toNote(),
+              Tone.now()
+            );
           });
         });
       })

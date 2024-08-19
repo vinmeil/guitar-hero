@@ -59,7 +59,7 @@ const updateView = (onFinish: () => void) => {
     // update circles
     s.exit
       .map((circle) => {
-        if (!circle.note.userPlayed) {
+        if (!circle.isHoldNote) {
           playNote(circle);
         }
         return circle;

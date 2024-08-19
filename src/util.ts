@@ -2,7 +2,7 @@ import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { Circle, Constants } from "./types";
 
-export { attr, generateUniqueId, playNote, startNote, stopNote, not }
+export { attr, generateUniqueId, playNote, not }
 
 const samples = SampleLibrary.load({
   instruments: SampleLibrary.list,
@@ -18,7 +18,6 @@ const generateUniqueId = (): string => {
 };
 
 const playNote = (circle: Circle) => {
-  console.log("playNote")
   const { instrument, pitch, duration, velocity } = circle.note;
   const normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / Constants.NOTE_VOLUME_NORMALIZER // divide because it is DAMN loud
   
@@ -39,24 +38,4 @@ const playNote = (circle: Circle) => {
   return undefined;
 };
 
-const startNote = (circle: Circle) => {
-  console.log("startNote")
-  const { velocity, instrument, pitch } = circle.note;
-  // for some reason hold notes are very loud, so i made them 10x quieter
-  const normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / (Constants.NOTE_VOLUME_NORMALIZER * 4)
-  console.log("trigger attack called", circle)
-  samples[instrument].triggerAttack(
-    Tone.Frequency(pitch, "midi").toNote(),
-    Tone.now(),
-    normalizedVelocity
-  );
-}
-
-const stopNote = (circle: Circle) => {
-  const { instrument, pitch } = circle.note;
-  samples[instrument].triggerRelease(
-    Tone.Frequency(pitch, "midi").toNote(),
-    Tone.now()
-  );
-}
 
