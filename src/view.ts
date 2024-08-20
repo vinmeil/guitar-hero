@@ -1,5 +1,5 @@
 import { Circle, CircleLine, State, Viewport } from "./types"
-import { attr, playNote } from "./util";
+import { attr, getAccuracy, playNote } from "./util";
 
 export { updateView }
 
@@ -34,7 +34,7 @@ const updateView = (onFinish: () => void) => {
       scoreHTML.textContent = `${s.score}`;
     }
 
-    // update combo
+    // update combo text
     const combo = document.getElementById("comboText");
     if (combo) {
       const comboDigits = s.combo.toString().length - 1;
@@ -42,10 +42,17 @@ const updateView = (onFinish: () => void) => {
       combo.textContent = `${s.combo}`;
     }
 
-    // update highest combo
+    // update highest combo text
     const highestCombo = document.getElementById("highestComboText");
     if (highestCombo) {
       highestCombo.textContent = `${s.highestCombo}`;
+    }
+
+    // update accuracy text
+    const accuracyText = document.getElementById("accuracyText");
+    if (accuracyText) {
+      const accuracy = getAccuracy(s);
+      accuracyText.textContent = `${accuracy.toFixed(2)}%`;
     }
 
     // update tails
@@ -59,9 +66,10 @@ const updateView = (onFinish: () => void) => {
     // update circles
     s.exit
       .map((circle) => {
-        if (!circle.isHoldNote) {
+        if ( (!circle.isHoldNote && !circle.note.userPlayed ) || ( circle.circleClicked && !circle.isHoldNote ) ) {
           playNote(circle);
         }
+
         return circle;
       })
       .forEach(circle => {

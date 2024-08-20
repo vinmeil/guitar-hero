@@ -225,9 +225,8 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
                   .pipe( filter(event => {
                     const keyIndex = Constants.COLUMN_KEYS.indexOf(event.code as "KeyA" | "KeyS" | "KeyK" | "KeyL");
                     return keyIndex !== -1 && Constants.COLUMN_PERCENTAGES[keyIndex] === circle.cx;
-                  }));
-
-          const start$ = of(circle).pipe(delay(0), take(1)),
+                  })),
+                start$ = of(circle).pipe(delay(0), take(1)),
                 stop$ = merge(keyup$, duration$),
                 normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / (Constants.NOTE_VOLUME_NORMALIZER * 4);
 

@@ -31,8 +31,6 @@ class Tick implements Action {
             expiredTails = movedTailProps.filter(tail => parseInt(tail.y1) >= Constants.HITCIRCLE_CENTER),
             missed = expiredCircles.find(circle => !circle.circleClicked && circle.note.userPlayed);
 
-      console.log(expiredBgCircles)
-
       const updatedHoldCircles = movedHoldCircles.filter(circle =>
         ( Number(circle.cy) <= Constants.HITCIRCLE_CENTER + // add length of tail
                                 ( (1000 / Constants.TICK_RATE_MS) *
@@ -51,6 +49,7 @@ class Tick implements Action {
           exit: expiredCircles.concat(expiredBgCircles),
           exitTails: expiredTails,
           time: this.elapsed,
+          nmiss: missed ? s.nmiss + 1 : s.nmiss,
       };
   }
 
@@ -99,7 +98,7 @@ class HitCircle implements Action {
     const col = Constants.COLUMN_KEYS.indexOf(this.key as "KeyA" | "KeyS" | "KeyK" | "KeyL");
     
     const lowestCircleInColumn = s.circleProps
-      .find(circle => {
+      .filter(circle => {
         const cy = Number(circle.cy);
         return  cy >= Constants.HITCIRCLE_CENTER - Constants.HITCIRCLE_RANGE &&
                 cy <= Constants.HITCIRCLE_CENTER + Constants.HITCIRCLE_RANGE + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA &&
@@ -107,13 +106,22 @@ class HitCircle implements Action {
                 circle.note.userPlayed;
       });
 
-    if (!lowestCircleInColumn) {
+      
+    if (lowestCircleInColumn.length === 0) {
       return s;
     }
 
-    const updatedCircleProps = s.circleProps.filter(circle => circle.id !== lowestCircleInColumn.id);
-    const filteredHoldCircles = s.holdCircles.filter(circle => circle.id !== lowestCircleInColumn.id);
-    const newCircle = { ...lowestCircleInColumn, circleClicked: true };
+    const lowestCircle = lowestCircleInColumn
+      .reduce((acc, cur) => (Number(cur.cy) > Number(acc.cy) ? cur : acc), lowestCircleInColumn[0]);
+
+    const circleCy = Number(lowestCircle.cy),
+          circleMarginFromCenter = Math.abs(Constants.HITCIRCLE_CENTER - circleCy),
+          hit300 = circleMarginFromCenter <= 25,
+          hit100 = circleMarginFromCenter > 25 && circleMarginFromCenter <= 55,
+          hit50 = circleMarginFromCenter > 55 && circleMarginFromCenter <= 90,
+          updatedCircleProps = s.circleProps.filter(circle => circle.id !== lowestCircle.id),
+          filteredHoldCircles = s.holdCircles.filter(circle => circle.id !== lowestCircle.id),
+          newCircle = { ...lowestCircle, circleClicked: true };
 
     return {
       ...s,
@@ -122,6 +130,9 @@ class HitCircle implements Action {
       holdCircles: filteredHoldCircles.concat(newCircle),
       combo: s.combo + 1,
       score: s.score + 1,
+      n300: hit300 ? s.n300 + 1 : s.n300,
+      n100: hit100 ? s.n100 + 1 : s.n100,
+      n50: hit50 ? s.n50 + 1 : s.n50,
     };
   }
 }
@@ -196,6 +207,10 @@ const initialState: State = {
   score: 0,
   combo: 0,
   highestCombo: 0,
+  n300: 0,
+  n100: 0,
+  n50: 0,
+  nmiss: 0,
 };
 
 /**

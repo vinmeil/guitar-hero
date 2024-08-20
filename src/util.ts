@@ -1,8 +1,8 @@
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
-import { Circle, Constants } from "./types";
+import { Circle, Constants, State } from "./types";
 
-export { attr, generateUniqueId, playNote, not }
+export { attr, generateUniqueId, playNote, not, getAccuracy };
 
 const samples = SampleLibrary.load({
   instruments: SampleLibrary.list,
@@ -37,5 +37,12 @@ const playNote = (circle: Circle) => {
   
   return undefined;
 };
+
+const getAccuracy = (s: State): number => {
+  const { n300, n100, n50, nmiss } = s;
+  const accuracy = ( (300 * n300) + (100 * n100) + (50 * n50) ) / 
+              ( 300 * (n300 + n100 + n50 + nmiss) )
+  return accuracy * 100;
+}
 
 
