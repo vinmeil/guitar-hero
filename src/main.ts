@@ -18,7 +18,7 @@ import { from, fromEvent, interval, merge, Observable, of, Subscription, timer }
 import { map, filter, scan, mergeMap, delay, takeUntil, take, switchMap, toArray, tap, mergeWith, last } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
-import { CreateCircle, initialState, HitCircle, reduceState, Tick, KeyUpHold } from "./state";
+import { CreateCircle, initialState, HitCircle, reduceState, Tick } from "./state";
 import { Action, Circle, Constants, NoteType, State, Viewport } from "./types";
 import { updateView } from "./view";
 import { generateUniqueId, playNote } from "./util";
@@ -215,18 +215,22 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
         const { velocity, instrument, pitch } = circle.note;
 
         Tone.ToneAudioBuffer.loaded().then(() => {
-          if ( !samples[circle.note.instrument] ||
+          if ( !samples[instrument] ||
                Number(circle.cy) >= Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA ) {
             return circle;
           }
           
           const duration$ = of(circle).pipe(delay(circle.note.duration * 1000)),
                 keyup$ = fromEvent<KeyboardEvent>(document, 'keyup')
-                  .pipe( filter(event => {
-                    const keyIndex = Constants.COLUMN_KEYS.indexOf(event.code as "KeyA" | "KeyS" | "KeyK" | "KeyL");
-                    return keyIndex !== -1 && Constants.COLUMN_PERCENTAGES[keyIndex] === circle.cx;
-                  })),
-                start$ = of(circle).pipe(delay(0), take(1)),
+                  .pipe(
+                    take(1),
+                    filter(event => {
+                      const keyIndex = Constants.COLUMN_KEYS.indexOf(event.code as "KeyA" | "KeyS" | "KeyK" | "KeyL");
+                      return keyIndex !== -1 && Constants.COLUMN_PERCENTAGES[keyIndex] === circle.cx;
+                    }),
+                  );
+
+          const start$ = of(circle).pipe(delay(0), take(1)),
                 stop$ = merge(keyup$, duration$),
                 normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / (Constants.NOTE_VOLUME_NORMALIZER * 4);
 

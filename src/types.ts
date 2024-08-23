@@ -9,8 +9,8 @@ const Viewport = {
 const Constants = {
   TICK_RATE_MS: 6,
   // SONG_NAME: "RockinRobin",
-  // SONG_NAME: "ComparedChild",
-  SONG_NAME: "ComparedChildNoBG",
+  SONG_NAME: "ComparedChild",
+  // SONG_NAME: "ComparedChildNoBG",
   // SONG_NAME: "BusToAnotherWorld",
   // SONG_NAME: "UnderKids",
   // SONG_NAME: "RainingAfterAll",
@@ -32,7 +32,7 @@ const Constants = {
   USERPLAYED_CIRCLE_VISIBLE_EXTRA: 20,
   START_Y: "-15",
   PIXELS_PER_TICK: 4,
-  NOTE_VOLUME_NORMALIZER: 20,
+  NOTE_VOLUME_NORMALIZER: 10,
 } as const;
 
 
