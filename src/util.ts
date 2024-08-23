@@ -38,6 +38,33 @@ const playNote = (circle: Circle) => {
   return undefined;
 };
 
+export const playAttack = (circle: Circle) => {
+  const { pitch, velocity } = circle.note;
+  const normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / Constants.NOTE_VOLUME_NORMALIZER // divide because it is DAMN loud
+  
+  Tone.ToneAudioBuffer.loaded().then(() => {
+    if (circle.audio) {
+      circle.audio.triggerAttack(
+        Tone.Frequency(pitch, "midi").toNote(),
+        Tone.now(),
+        normalizedVelocity
+      );
+    }
+  });
+}
+
+export const playRelease = (circle: Circle) => {
+  const { pitch } = circle.note;
+  Tone.ToneAudioBuffer.loaded().then(() => {
+    if (circle.audio) {
+      circle.audio.triggerRelease(
+        Tone.Frequency(pitch, "midi").toNote(),
+        Tone.now()
+      );
+    }
+  });
+}
+
 const getAccuracy = (s: State): number => {
   const { n300, n100, n50, nmiss } = s;
   const accuracy = ( (300 * n300) + (100 * n100) + (50 * n50) ) / 

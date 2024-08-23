@@ -1,5 +1,7 @@
-import { Circle, CircleLine, State, Viewport } from "./types"
-import { attr, getAccuracy, playNote } from "./util";
+import { delay, of, take } from "rxjs";
+import { Circle, CircleLine, Constants, State, Viewport } from "./types"
+import { attr, getAccuracy, playAttack, playNote, playRelease } from "./util";
+import * as Tone from "tone";
 
 export { updateView }
 
@@ -63,11 +65,15 @@ const updateView = (onFinish: () => void) => {
       }
     })
 
-    // update circles
+    // update non hold circles
     s.exit
       .map((circle) => {
         if ( (!circle.isHoldNote && !circle.note.userPlayed ) || ( circle.circleClicked && !circle.isHoldNote ) ) {
           playNote(circle);
+        }
+
+        if ( circle.circleClicked && circle.isHoldNote ) {
+          playAttack(circle);
         }
 
         return circle;
@@ -78,6 +84,25 @@ const updateView = (onFinish: () => void) => {
           circleSVG.remove();
         }
       })
+
+    // update hold circles
+    s.holdCircles
+      .forEach(circle => {
+        if (!circle.isHoldNote) { // somehow non hold notes are getting here
+          return circle;
+        }
+
+        // check if the circle is either not being held down or
+        // if the circle has reached the end of its duration (using y coordinate)
+        if (!circle.circleClicked ||
+            Number(circle.cy) >=  Constants.HITCIRCLE_CENTER + // add length of tail
+                                  ( (1000 / Constants.TICK_RATE_MS) *
+                                  Constants.PIXELS_PER_TICK * circle.note.duration )
+        ) {
+          playRelease(circle);
+        }
+        
+      });
 
 
     if (s.gameEnd) {

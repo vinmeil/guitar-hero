@@ -18,7 +18,7 @@ import { from, fromEvent, interval, merge, Observable, of, Subscription, timer }
 import { map, filter, scan, mergeMap, delay, takeUntil, take, switchMap, toArray, tap, mergeWith, last } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
-import { CreateCircle, initialState, HitCircle, reduceState, Tick } from "./state";
+import { CreateCircle, initialState, HitCircle, reduceState, Tick, KeyUpHold } from "./state";
 import { Action, Circle, Constants, NoteType, State, Viewport } from "./types";
 import { updateView } from "./view";
 import { generateUniqueId, playNote } from "./util";
@@ -163,11 +163,10 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     const colTwoKeyDown$ = key$("keydown", "KeyS").pipe(map(_ => new HitCircle("KeyS")));
     const colThreeKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new HitCircle("KeyK")));
     const colFourKeyDown$ = key$("keydown", "KeyL").pipe(map(_ => new HitCircle("KeyL")));
-
-    // const colOneKeyUp$ = key$("keyup", "KeyA").pipe(map(_ => new KeyUpHold("KeyA")));
-    // const colTwoKeyUp$ = key$("keyup", "KeyS").pipe(map(_ => new KeyUpHold("KeyS")));
-    // const colThreeKeyUp$ = key$("keyup", "KeyK").pipe(map(_ => new KeyUpHold("KeyK")));
-    // const colFourKeyUp$ = key$("keyup", "KeyL").pipe(map(_ => new KeyUpHold("KeyL")));
+    const colOneKeyUp$ = key$("keyup", "KeyA").pipe(map(_ => new KeyUpHold("KeyA")));
+    const colTwoKeyUp$ = key$("keyup", "KeyS").pipe(map(_ => new KeyUpHold("KeyS")));
+    const colThreeKeyUp$ = key$("keyup", "KeyK").pipe(map(_ => new KeyUpHold("KeyK")));
+    const colFourKeyUp$ = key$("keyup", "KeyL").pipe(map(_ => new KeyUpHold("KeyL")));
 
     const circleStream$ = from(notes).pipe(
       mergeMap(note => of(note).pipe(delay(note.start * 1000))),
@@ -185,6 +184,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
           circleClicked: false,
           isHoldNote: note.end - note.start >= 1 && note.userPlayed ? true : false,
           tailHeight: ( 1000 / Constants.TICK_RATE_MS ) * Constants.PIXELS_PER_TICK * (note.end - note.start) - 50,
+          audio: samples[note.instrument],
         })
       }),
     )
@@ -197,6 +197,10 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       colTwoKeyDown$,
       colThreeKeyDown$,
       colFourKeyDown$,
+      colOneKeyUp$,
+      colTwoKeyUp$,
+      colThreeKeyUp$,
+      colFourKeyUp$,
       circleStream$
     );
 
@@ -205,54 +209,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       scan(reduceState, initialState),
     );
 
-    const subscription: Subscription = state$.subscribe(s => {
-      // play hold notes on keydown and stop on keyup
-      s.holdCircles.forEach(circle => {
-        if (!circle.circleClicked || !circle.isHoldNote) { // somehow non hold notes are getting here
-          return circle;
-        }
-
-        const { velocity, instrument, pitch } = circle.note;
-
-        Tone.ToneAudioBuffer.loaded().then(() => {
-          if ( !samples[instrument] ||
-               Number(circle.cy) >= Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA ) {
-            return circle;
-          }
-          
-          const duration$ = of(circle).pipe(delay(circle.note.duration * 1000)),
-                keyup$ = fromEvent<KeyboardEvent>(document, 'keyup')
-                  .pipe(
-                    take(1),
-                    filter(event => {
-                      const keyIndex = Constants.COLUMN_KEYS.indexOf(event.code as "KeyA" | "KeyS" | "KeyK" | "KeyL");
-                      return keyIndex !== -1 && Constants.COLUMN_PERCENTAGES[keyIndex] === circle.cx;
-                    }),
-                  );
-
-          const start$ = of(circle).pipe(delay(0), take(1)),
-                stop$ = merge(keyup$, duration$),
-                normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / (Constants.NOTE_VOLUME_NORMALIZER * 4);
-
-          // putting these into their own functions in util.ts breaks it
-          start$.subscribe(() => {
-            samples[instrument].triggerAttack(
-              Tone.Frequency(pitch, "midi").toNote(),
-              Tone.now(),
-              normalizedVelocity
-          )});
-
-          stop$.subscribe(() => {
-            samples[instrument].triggerRelease(
-              Tone.Frequency(pitch, "midi").toNote(),
-              Tone.now()
-            );
-          });
-        });
-      })
-
-      updateView(() => subscription.unsubscribe())(s)
-    });
+    const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe()));
     
 
     }

@@ -1,6 +1,8 @@
 export type { Circle, CircleLine, State, Action, NoteType };
 export { Constants, Viewport };
 
+import * as Tone from "tone";
+
 const Viewport = {
   CANVAS_WIDTH: 200,
   CANVAS_HEIGHT: 400,
@@ -29,7 +31,7 @@ const Constants = {
   COLUMN_PERCENTAGES: ["20%", "40%", "60%", "80%"],
   HITCIRCLE_CENTER: Viewport.CANVAS_HEIGHT - 50,
   HITCIRCLE_RANGE: 70,
-  USERPLAYED_CIRCLE_VISIBLE_EXTRA: 20,
+  USERPLAYED_CIRCLE_VISIBLE_EXTRA: 40,
   START_Y: "-15",
   PIXELS_PER_TICK: 4,
   NOTE_VOLUME_NORMALIZER: 10,
@@ -60,6 +62,7 @@ type Circle = Readonly<{
   circleClicked: boolean,
   tailHeight?: number,
   isHoldNote: boolean,
+  audio: Tone.Sampler
 }>
 
 type CircleLine = Readonly<{
@@ -99,4 +102,18 @@ type State = Readonly<{
  */
 interface Action {
   apply(s: State): State;
+}
+
+export type moveEverythingParams = {
+  circleProps: Circle[],
+  tailProps: CircleLine[],
+  holdCircles: Circle[],
+  bgCircleProps: Circle[]
+}
+
+export type filterEverythingParams = {
+  movedCircleProps: Circle[],
+  movedTailProps: CircleLine[],
+  movedHoldCircles: Circle[],
+  movedBgCircleProps: Circle[]
 }

@@ -1,9 +1,9 @@
 import { SampleLibrary } from "./tonejs-instruments";
-import { Action, Circle, CircleLine, Constants, State, Viewport } from "./types";
+import { Action, Circle, CircleLine, Constants, filterEverythingParams, moveEverythingParams, State, Viewport } from "./types";
 import { attr, generateUniqueId, not, playNote } from "./util";
 import * as Tone from "tone";
 
-export { Tick, CreateCircle, reduceState, initialState, HitCircle };
+export { Tick, CreateCircle, reduceState, initialState, HitCircle, KeyUpHold };
 
 class Tick implements Action {
   constructor(public readonly elapsed: number) { }
@@ -41,12 +41,12 @@ class Tick implements Action {
       };
   }
 
-  static filterEverything = ({ movedCircleProps, movedTailProps, movedHoldCircles, movedBgCircleProps }: {
-    movedCircleProps: Circle[],
-    movedTailProps: CircleLine[],
-    movedHoldCircles: Circle[],
-    movedBgCircleProps: Circle[]
-  }) => {
+  static filterEverything = ({
+    movedCircleProps,
+    movedTailProps,
+    movedHoldCircles,
+    movedBgCircleProps
+  }: filterEverythingParams) => {
     const outOfBounds = (circle: Circle): boolean => (
       // userPlayed and !userPlayed have different timings to allow for user played circles
       ( Number(circle.cy) > Constants.HITCIRCLE_CENTER && !circle.note.userPlayed ) ||
@@ -65,18 +65,19 @@ class Tick implements Action {
       ( Number(circle.cy) <= Constants.HITCIRCLE_CENTER + // add length of tail
                               ( (1000 / Constants.TICK_RATE_MS) *
                               Constants.PIXELS_PER_TICK * circle.note.duration ) &&
-        circle.isHoldNote )
+        circle.isHoldNote &&
+        circle.circleClicked ) 
     )
             
     return { expiredCircles, expiredBgCircles, updatedCircleProps, updatedBgCircleProps, updatedTailProps, expiredTails, missed, updatedHoldCircles };
   }
 
-  static moveEverything = ({ circleProps, tailProps, holdCircles, bgCircleProps }: {
-    circleProps: Circle[],
-    tailProps: CircleLine[],
-    holdCircles: Circle[],
-    bgCircleProps: Circle[]
-  }) => {
+  static moveEverything = ({
+    circleProps,
+    tailProps,
+    holdCircles,
+    bgCircleProps
+  }: moveEverythingParams) => {
     const movedCircleProps = circleProps.map(Tick.moveCircle),
           movedTailProps = tailProps.map(Tick.moveTail),
           movedHoldCircles = holdCircles.map(Tick.moveCircle),
@@ -104,6 +105,41 @@ class Tick implements Action {
   }
 }
 
+class KeyUpHold implements Action {
+  constructor(public readonly key: string) { }
+
+  apply(s: State): State {
+    const col = Constants.COLUMN_KEYS.indexOf(this.key as "KeyA" | "KeyS" | "KeyK" | "KeyL");
+    const colPercentage = Constants.COLUMN_PERCENTAGES[col];
+
+    // this should always return an array of 1 or 0 elements since there can only be clickable hold circle
+    // in 1 column at one singular time
+    const clickedHoldCirclesInColumn = s.holdCircles.filter(circle => 
+                                                        circle.cx === colPercentage &&
+                                                        circle.note.userPlayed &&
+                                                        circle.circleClicked
+                                                    );
+    if (clickedHoldCirclesInColumn.length === 0) {
+      return s;
+    }
+
+    // since there will only be 1 circle, we can just grab the first element
+    const clickedHoldCircle = clickedHoldCirclesInColumn[0],
+          filteredHoldCircles = s.holdCircles.filter(circle => circle.id !== clickedHoldCircle.id),
+          newCircle = { ...clickedHoldCircle, circleClicked: false };
+
+    const isMissed = Number(newCircle.cy) <=  Constants.HITCIRCLE_CENTER + // add length of tail
+                                              ( (1000 / Constants.TICK_RATE_MS) *
+                                              Constants.PIXELS_PER_TICK * newCircle.note.duration ) - 50;
+    
+    return {
+      ...s,
+      holdCircles: filteredHoldCircles.concat(newCircle),
+      combo: isMissed ? 0 : s.combo,
+      nmiss: isMissed ? s.nmiss + 1 : s.nmiss,
+    };
+  }
+}
 class HitCircle implements Action {
   constructor(public readonly key: string) { }
 
