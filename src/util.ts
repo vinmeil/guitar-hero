@@ -3,7 +3,7 @@ import { SampleLibrary } from "./tonejs-instruments";
 import { Circle, Constants, State } from "./types";
 import { map, Observable, scan } from "rxjs";
 
-export { attr, generateUniqueId, playNote, not, getAccuracy };
+export { attr, playNote, not, getAccuracy };
 
 const samples = SampleLibrary.load({
   instruments: SampleLibrary.list,
@@ -33,12 +33,6 @@ export abstract class RNG {
 public static scale = (hash: number) => (2 * hash) / (RNG.m - 1) / 2;
 }
 //////////////////////////////////////////////////////////////////////////////////////////
-
-
-// FIXME: function is impure
-const generateUniqueId = (): string => {
-  return `circle-${Date.now()} - ${Math.floor(Math.random() * 1000)}`;
-};
 
 export const getRandomDuration = (randomNumber: number): number => {
   return (randomNumber / 4) + 0.25;

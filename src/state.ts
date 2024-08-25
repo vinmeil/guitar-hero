@@ -1,6 +1,6 @@
 import { SampleLibrary } from "./tonejs-instruments";
 import { Action, Circle, CircleLine, Constants, filterEverythingParams, moveEverythingParams, State, Viewport } from "./types";
-import { attr, generateUniqueId, getRandomDuration, not, playNote, RNG } from "./util";
+import { attr, getRandomDuration, not, playNote, RNG } from "./util";
 import * as Tone from "tone";
 
 export { Tick, CreateCircle, reduceState, initialState, HitCircle, KeyUpHold };
@@ -130,14 +130,15 @@ class KeyUpHold implements Action {
   }
 }
 class HitCircle implements Action {
-  constructor(public readonly key: string) { }
+  constructor(public readonly key: "KeyA" | "KeyS" | "KeyK" | "KeyL") { }
 
   /**
    * @param s old State
    * @returns new State
    */
   apply(s: State): State {
-    const col = Constants.COLUMN_KEYS.indexOf(this.key as "KeyA" | "KeyS" | "KeyK" | "KeyL");
+    console.log("this is the key", this.key)
+    const col = Constants.COLUMN_KEYS.indexOf(this.key);
     
     // get the lowest circle in column to register hit
     const lowestCircleInColumn = s.circleProps
@@ -157,24 +158,25 @@ class HitCircle implements Action {
             randomInstrumentIndex = Math.floor(randomNumber * Constants.INSTRUMENTS.length),
             randomDuration = getRandomDuration(randomNumber) ,
             newCircle = {
-        id: generateUniqueId(),
-        r: `${0.07 * Viewport.CANVAS_WIDTH}`,
-        cx: `${(col + 1) * 20}%`,
-        cy: Constants.HITCIRCLE_CENTER.toString(),
-        style: `fill: ${Constants.COLUMN_COLORS[col]}`,
-        class: "circle",
-        note: {
-          userPlayed: true,
-          instrument: Constants.INSTRUMENTS[randomInstrumentIndex],
-          velocity: Math.random(),
-          pitch: Math.floor(Math.random() * 127),
-          start: s.time,
-          end: s.time + randomDuration,
-          duration: randomDuration,
-        },
-        circleClicked: true,
-        isHoldNote: false,
-      } as Circle;
+              id: `circle-${s.circleCount}`,
+              r: `${0.07 * Viewport.CANVAS_WIDTH}`,
+              cx: `${(col + 1) * 20}%`,
+              cy: Constants.HITCIRCLE_CENTER.toString(),
+              style: `fill: ${Constants.COLUMN_COLORS[col]}`,
+              class: "circle",
+              note: {
+                userPlayed: true,
+                instrument: Constants.INSTRUMENTS[randomInstrumentIndex],
+                velocity: Math.random(),
+                pitch: Math.floor(Math.random() * 127),
+                start: s.time,
+                end: s.time + randomDuration,
+                duration: randomDuration,
+              },
+              circleClicked: true,
+              isHoldNote: false,
+            } as Circle;
+
       return {
         ...s,
         exit: s.exit.concat(newCircle),
@@ -223,20 +225,25 @@ class CreateCircle implements Action {
    * @returns new State
    */
   apply(s: State): State {
-    const tail = CreateCircle.createCircleSVG(this.circle);
-    const isUserPlayed = this.circle.note.userPlayed;
+    const newCircle = {
+      ...this.circle,
+      id: `circle-${s.circleCount}`,
+    }
+
+    const tail = CreateCircle.createSVG(newCircle);
+    const isUserPlayed = newCircle.note.userPlayed;
 
     return {
       ...s,
-      circleProps: isUserPlayed ? s.circleProps.concat(this.circle) : s.circleProps,
-      bgCircleProps: !isUserPlayed ? s.bgCircleProps.concat(this.circle) : s.bgCircleProps,
+      circleProps: isUserPlayed ? s.circleProps.concat(newCircle) : s.circleProps,
+      bgCircleProps: !isUserPlayed ? s.bgCircleProps.concat(newCircle) : s.bgCircleProps,
       tailProps: tail ? s.tailProps.concat(tail) : s.tailProps,
-      holdCircles: this.circle.isHoldNote && this.circle.note.userPlayed ? s.holdCircles.concat(this.circle) : s.holdCircles,
+      holdCircles: newCircle.isHoldNote && newCircle.note.userPlayed ? s.holdCircles.concat(newCircle) : s.holdCircles,
       circleCount: s.circleCount + 1,
     };
   }
 
-  static createCircleSVG = (circle: Circle): CircleLine | undefined => {
+  static createSVG = (circle: Circle): CircleLine | undefined => {
     // if circle isnt user_played circle, dont create svg
     if (!circle.note.userPlayed) {
       return undefined;
@@ -260,7 +267,7 @@ class CreateCircle implements Action {
     // check just in case, if its a hold note then create a tail svg
     if (circle.isHoldNote && circle.tailHeight) {
       const tailProps = {
-        id: generateUniqueId(),
+        id: `tail-${circle.id}`,
         x1: circle.cx,
         x2: circle.cx,
         y1: `-${circle.tailHeight}`,
@@ -293,7 +300,7 @@ const initialState: State = {
   nGreat: 0,
   nGood: 0,
   nMiss: 0,
-  circleCount: 0
+  circleCount: 0,
 };
 
 /**

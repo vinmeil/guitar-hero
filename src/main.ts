@@ -21,7 +21,7 @@ import { SampleLibrary } from "./tonejs-instruments";
 import { CreateCircle, initialState, HitCircle, reduceState, Tick, KeyUpHold } from "./state";
 import { Action, Circle, Constants, NoteType, State, Viewport } from "./types";
 import { updateView } from "./view";
-import { generateUniqueId, playNote } from "./util";
+import { playNote, RNG } from "./util";
 
 /** Constants */
 
@@ -78,54 +78,25 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     const tick$ = interval(Constants.TICK_RATE_MS);
     
     // gets the column that the circle should go to
-    // const getColumn = (pitch: number, minPitch: number, maxPitch: number): number => {
-      // const range = maxPitch - minPitch + 1; // finds range of pitch
-      // const cur = pitch - minPitch;
-      // const ratio = cur / range;
-      // return Math.floor(ratio * 4); // return column based on quartile of the current pitch
-
-    //   const range = maxPitch - minPitch + 1; // finds range of pitch
-    //   const randomPitch = Math.floor(Math.random() * range) + minPitch; // generate random pitch within range
-    //   const cur = randomPitch - minPitch;
-    //   const ratio = cur / range;
-    //   return Math.floor(ratio * 4);
-    // }
-
-    // const lastAssignedColumn: { [startTime: number]: number } = {};
-
-    // function getColumn(startTime: number, pitch: number): number {
-    //   const columns = [0, 1, 2, 3]; // Assuming 4 columns
-    //   if (lastAssignedColumn[startTime] !== undefined) {
-    //     // Remove the last assigned column from the available columns
-    //     const lastColumn = lastAssignedColumn[startTime];
-    //     const availableColumns = columns.filter(col => col !== lastColumn);
-    //     // Assign a new column from the available columns
-    //     const newColumn = availableColumns[Math.floor(Math.random() * availableColumns.length)];
-    //     lastAssignedColumn[startTime] = newColumn;
-    //     return newColumn;
-    //   } else {
-    //     // If no column was assigned for this start time, assign a random column
-    //     const newColumn = columns[Math.floor(Math.random() * columns.length)];
-    //     lastAssignedColumn[startTime] = newColumn;
-    //     return newColumn;
-    //   }
-    // }
-
     // FIXME: using mutable variables, change to immutable. this is just so i can play the songs nicely
     let prev = [0, 0, 0, 0];
     function getColumn(startTime: number, pitch: number, userPlayed: boolean): number {
-      const columns = [0, 1, 2, 3]; // Assuming 4 columns
-      const modifier = [-1, 1]
-      const currentTime = startTime; // Assuming startTime is in milliseconds
-      const randomIndex = Math.floor(Math.random() * modifier.length);
+      const randomNumber = RNG.scale(RNG.hash(startTime)),
+            columns = [0, 1, 2, 3],
+            modifier = [-1, 1],
+            currentTime = startTime,
+            randomIndex = Math.floor(randomNumber * modifier.length),
+            initialColumn = Math.floor(randomNumber * columns.length);
       
-      let counter = 3;
-      let newColumn = columns[Math.floor(Math.random() * columns.length)];
-      while (Math.abs(prev[newColumn] - currentTime) <= 0.150 && counter > 0) {
-        newColumn += modifier[randomIndex] + 4;
-        newColumn %= 4;
-        counter--;
+      function findColumn(column: number, counter: number): number {
+        if (counter <= 0 || Math.abs(prev[column] - currentTime) > 0.150) {
+          return column;
+        }
+        const newColumn = (column + modifier[randomIndex] + 4) % 4;
+        return findColumn(newColumn, counter - 1);
       }
+
+      const newColumn = findColumn(initialColumn, 3);
 
       if (userPlayed) {
         prev[newColumn] = currentTime
@@ -141,8 +112,6 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     
     // get min and max pitch
     const pitches: number[] = values.map((line) => Number(line.split(",")[3]));
-    const minPitch = Math.min(...pitches);
-    const maxPitch = Math.max(...pitches);
     
     // turn everything to objects so its easier
     const notes: NoteType[] = values.map((line) => {
@@ -158,15 +127,15 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       } as const
     })
     
-    const gameClock$ = tick$.pipe(map(elapsed => new Tick(elapsed)));
-    const colOneKeyDown$ = key$("keydown", "KeyA").pipe(map(_ => new HitCircle("KeyA")));
-    const colTwoKeyDown$ = key$("keydown", "KeyS").pipe(map(_ => new HitCircle("KeyS")));
-    const colThreeKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new HitCircle("KeyK")));
-    const colFourKeyDown$ = key$("keydown", "KeyL").pipe(map(_ => new HitCircle("KeyL")));
-    const colOneKeyUp$ = key$("keyup", "KeyA").pipe(map(_ => new KeyUpHold("KeyA")));
-    const colTwoKeyUp$ = key$("keyup", "KeyS").pipe(map(_ => new KeyUpHold("KeyS")));
-    const colThreeKeyUp$ = key$("keyup", "KeyK").pipe(map(_ => new KeyUpHold("KeyK")));
-    const colFourKeyUp$ = key$("keyup", "KeyL").pipe(map(_ => new KeyUpHold("KeyL")));
+    const gameClock$ = tick$.pipe(map(elapsed => new Tick(elapsed))),
+          colOneKeyDown$ = key$("keydown", "KeyA").pipe(map(_ => new HitCircle("KeyA"))),
+          colTwoKeyDown$ = key$("keydown", "KeyS").pipe(map(_ => new HitCircle("KeyS"))),
+          colThreeKeyDown$ = key$("keydown", "KeyK").pipe(map(_ => new HitCircle("KeyK"))),
+          colFourKeyDown$ = key$("keydown", "KeyL").pipe(map(_ => new HitCircle("KeyL"))),
+          colOneKeyUp$ = key$("keyup", "KeyA").pipe(map(_ => new KeyUpHold("KeyA"))),
+          colTwoKeyUp$ = key$("keyup", "KeyS").pipe(map(_ => new KeyUpHold("KeyS"))),
+          colThreeKeyUp$ = key$("keyup", "KeyK").pipe(map(_ => new KeyUpHold("KeyK"))),
+          colFourKeyUp$ = key$("keyup", "KeyL").pipe(map(_ => new KeyUpHold("KeyL")));
 
     const circleStream$ = from(notes).pipe(
       mergeMap(note => of(note).pipe(delay(note.start * 1000))),
@@ -174,7 +143,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
         // const column = getColumn(note.start, note.pitch);
         const column = getColumn(note.start, note.pitch, note.userPlayed);
         return new CreateCircle({
-          id: generateUniqueId(),
+          id: "0",
           r: `${Note.RADIUS}`,
           cx: `${((column + 1) * 20)}%`, // taken from examples above
           cy: Constants.START_Y,
