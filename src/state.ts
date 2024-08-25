@@ -95,10 +95,10 @@ class Tick implements Action {
 }
 
 class KeyUpHold implements Action {
-  constructor(public readonly key: string) { }
+  constructor(public readonly key: "KeyA" | "KeyS" | "KeyK" | "KeyL") { }
 
   apply(s: State): State {
-    const col = Constants.COLUMN_KEYS.indexOf(this.key as "KeyA" | "KeyS" | "KeyK" | "KeyL");
+    const col = Constants.COLUMN_KEYS.indexOf(this.key);
     const colPercentage = Constants.COLUMN_PERCENTAGES[col];
 
     // this should always return an array of 1 or 0 elements since there can only be clickable hold circle
