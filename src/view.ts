@@ -58,6 +58,12 @@ const updateView = (onFinish: () => void) => {
       accuracyText.textContent = `${accuracy.toFixed(2)}%`;
     }
 
+    // update multiplier text
+    const multiplierText = document.getElementById("multiplierText");
+    if (multiplierText) {
+      multiplierText.textContent = `${s.multiplier}x`;
+    }
+
     // update tails
     s.exitTails.forEach(line => {
       const lineSVG = document.getElementById(line.id);

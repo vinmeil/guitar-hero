@@ -35,6 +35,7 @@ class Tick implements Action {
           tailProps: updatedTailProps.map(Tick.moveTail),
           holdCircles: updatedHoldCircles.map(Tick.moveCircle),
           combo: missed ? 0 : s.combo,
+          multiplier: missed ? 1 : s.multiplier,
           highestCombo: Math.max(s.combo, s.highestCombo),
           exit: expiredCircles.concat(expiredBgCircles),
           exitTails: expiredTails,
@@ -119,12 +120,15 @@ class KeyUpHold implements Action {
     const isMissed = Number(newCircle.cy) <=  Constants.HITCIRCLE_CENTER + // add length of tail
                                               ( (1000 / Constants.TICK_RATE_MS) *
                                               Constants.PIXELS_PER_TICK * newCircle.note.duration ) - 100;
+
+    const isIncreaseMultiplier = s.combo % 10 == 0 && s.combo > 0;
     
     return {
       ...s,
       holdCircles: filteredHoldCircles.concat(newCircle),
-      score: isMissed ? s.score : s.score + 1,
+      score: isMissed ? s.score : parseFloat((s.score + (1 * s.multiplier)).toFixed(2)),
       combo: isMissed ? 0 : s.combo + 1,
+      multiplier: isMissed ? 1 : parseFloat((s.multiplier + (isIncreaseMultiplier ? 0.2 : 0)).toFixed(2)),
       nMiss: isMissed ? s.nMiss + 1 : s.nMiss,
     };
   }
@@ -152,29 +156,7 @@ class HitCircle implements Action {
     // if user misclicks, add a circle that plays a random instrument for random duration in exit
     if (playableCirclesInColumn.length === 0) {
       // + 1 because scale is [-1, 1], and / 2 to get [0, 1], -0.01 so it doesnt result in 1 which would give index OOB error
-      const randomNumber = RNG.scale(RNG.hash(s.circleCount)),
-            randomInstrumentIndex = Math.floor(randomNumber * Constants.INSTRUMENTS.length),
-            randomDuration = getRandomDuration(randomNumber) ,
-            newCircle = {
-              id: `circle-${s.circleCount}`,
-              r: `${0.07 * Viewport.CANVAS_WIDTH}`,
-              cx: `${(col + 1) * 20}%`,
-              cy: Constants.HITCIRCLE_CENTER.toString(),
-              style: `fill: green`,
-              class: "circle",
-              note: {
-                userPlayed: false,
-                instrument: Constants.INSTRUMENTS[randomInstrumentIndex],
-                velocity: Math.random(),
-                pitch: Math.floor(Math.random() * 127),
-                start: s.time,
-                end: s.time + randomDuration,
-                duration: randomDuration,
-              },
-              circleClicked: true,
-              isHoldNote: false,
-            } as Circle;
-
+      const newCircle = HitCircle.createRandomNoteCircle(s);
       return {
         ...s,
         exit: s.exit.concat(newCircle),
@@ -201,17 +183,48 @@ class HitCircle implements Action {
             }
           };
 
+    const isIncreaseMultiplier = s.combo % 10 == 0 && s.combo > 0;
+
     return {
       ...s,
       circleProps: updatedCircleProps,
       exit: s.exit.concat(newCircle),
       holdCircles: filteredHoldCircles.concat(newCircle),
       combo: newCircle.isHoldNote ? s.combo : s.combo + 1,
-      score: newCircle.isHoldNote ? s.score: s.score + 1,
+      score: newCircle.isHoldNote ? s.score: parseFloat((s.score + (1 * s.multiplier)).toFixed(2)),
+      multiplier: newCircle.isHoldNote ? s.multiplier : parseFloat((s.multiplier + (isIncreaseMultiplier ? 0.2 : 0)).toFixed(2)),
       nPerfect: hitPerfect ? s.nPerfect + 1 : s.nPerfect,
       nGreat: hitGreat ? s.nGreat + 1 : s.nGreat,
       nGood: hitGood ? s.nGood + 1 : s.nGood,
     };
+  }
+
+  static createRandomNoteCircle = (s: State): Circle => {
+    const randomNumber = RNG.scale(RNG.hash(s.circleCount)),
+          randomInstrumentIndex = Math.floor(randomNumber * Constants.INSTRUMENTS.length),
+          randomDuration = getRandomDuration(randomNumber) ,
+          newCircle = {
+            id: `circle-${s.circleCount}`,
+            r: `${0.07 * Viewport.CANVAS_WIDTH}`,
+            cx: `0%`,
+            cy: Constants.HITCIRCLE_CENTER.toString(),
+            style: `fill: green`,
+            class: "circle",
+            note: {
+              userPlayed: false,
+              instrument: Constants.INSTRUMENTS[randomInstrumentIndex],
+              velocity: Math.random(),
+              pitch: Math.floor(Math.random() * 127),
+              start: s.time,
+              end: s.time + randomDuration,
+              duration: randomDuration,
+            },
+            circleClicked: true,
+            isHoldNote: false,
+          } as Circle;
+
+
+    return newCircle;
   }
 }
 
@@ -330,6 +343,7 @@ const initialState: State = {
   nMiss: 0,
   circleCount: 0,
   prevColumnTimes: [0, 0, 0, 0],
+  multiplier: 1,
 };
 
 /**
