@@ -137,11 +137,10 @@ class HitCircle implements Action {
    * @returns new State
    */
   apply(s: State): State {
-    console.log("this is the key", this.key)
     const col = Constants.COLUMN_KEYS.indexOf(this.key);
     
     // get the lowest circle in column to register hit
-    const lowestCircleInColumn = s.circleProps
+    const playableCirclesInColumn = s.circleProps
       .filter(circle => {
         const cy = Number(circle.cy);
         return  cy >= Constants.HITCIRCLE_CENTER - Constants.HITCIRCLE_RANGE &&
@@ -151,9 +150,8 @@ class HitCircle implements Action {
       });
 
     // if user misclicks, add a circle that plays a random instrument for random duration in exit
-    if (lowestCircleInColumn.length === 0) {
+    if (playableCirclesInColumn.length === 0) {
       // + 1 because scale is [-1, 1], and / 2 to get [0, 1], -0.01 so it doesnt result in 1 which would give index OOB error
-      console.log("got here")
       const randomNumber = RNG.scale(RNG.hash(s.circleCount)),
             randomInstrumentIndex = Math.floor(randomNumber * Constants.INSTRUMENTS.length),
             randomDuration = getRandomDuration(randomNumber) ,
@@ -162,10 +160,10 @@ class HitCircle implements Action {
               r: `${0.07 * Viewport.CANVAS_WIDTH}`,
               cx: `${(col + 1) * 20}%`,
               cy: Constants.HITCIRCLE_CENTER.toString(),
-              style: `fill: ${Constants.COLUMN_COLORS[col]}`,
+              style: `fill: green`,
               class: "circle",
               note: {
-                userPlayed: true,
+                userPlayed: false,
                 instrument: Constants.INSTRUMENTS[randomInstrumentIndex],
                 velocity: Math.random(),
                 pitch: Math.floor(Math.random() * 127),
@@ -183,8 +181,8 @@ class HitCircle implements Action {
       };
     }
 
-    const lowestCircle = lowestCircleInColumn
-      .reduce((acc, cur) => (Number(cur.cy) > Number(acc.cy) ? cur : acc), lowestCircleInColumn[0]);
+    const lowestCircle = playableCirclesInColumn
+      .reduce((acc, cur) => (Number(cur.cy) > Number(acc.cy) ? cur : acc), playableCirclesInColumn[0]);
 
     const circleCy = Number(lowestCircle.cy),
           circleMarginFromCenter = Math.abs(Constants.HITCIRCLE_CENTER - circleCy),
@@ -225,9 +223,13 @@ class CreateCircle implements Action {
    * @returns new State
    */
   apply(s: State): State {
+    const [column, updatedPrevColumnTimes] = CreateCircle.getColumn(this.circle.note.start, this.circle.note.userPlayed, s);
+
     const newCircle = {
       ...this.circle,
       id: `circle-${s.circleCount}`,
+      cx: `${(column + 1) * 20}%`,
+      style: `fill: ${Constants.COLUMN_COLORS[column]}`
     }
 
     const tail = CreateCircle.createSVG(newCircle);
@@ -240,7 +242,33 @@ class CreateCircle implements Action {
       tailProps: tail ? s.tailProps.concat(tail) : s.tailProps,
       holdCircles: newCircle.isHoldNote && newCircle.note.userPlayed ? s.holdCircles.concat(newCircle) : s.holdCircles,
       circleCount: s.circleCount + 1,
+      prevColumnTimes: updatedPrevColumnTimes,
     };
+  }
+
+  static getColumn(startTime: number, userPlayed: boolean, s: State): [number, readonly number[]] {
+    const randomNumber = RNG.scale(RNG.hash(startTime * 1000)),
+          columns = [0, 1, 2, 3],
+          modifier = [-1, 1],
+          currentTime = startTime,
+          randomIndex = Math.floor(randomNumber * modifier.length),
+          initialColumn = Math.floor(randomNumber * columns.length);
+    
+    function findColumn(column: number, counter: number): number {
+      if (counter <= 0 || Math.abs(s.prevColumnTimes[column] - currentTime) > 0.150) {
+        return column;
+      }
+      const newColumn = (column + modifier[randomIndex] + 4) % 4;
+      return findColumn(newColumn, counter - 1);
+    }
+
+    const newColumn = findColumn(initialColumn, 3);
+
+    const updatedPrevColumnTimes = userPlayed
+    ? s.prevColumnTimes.map((time, index) => index === newColumn ? currentTime : time)
+    : s.prevColumnTimes;
+
+    return [newColumn, updatedPrevColumnTimes];
   }
 
   static createSVG = (circle: Circle): CircleLine | undefined => {
@@ -301,6 +329,7 @@ const initialState: State = {
   nGood: 0,
   nMiss: 0,
   circleCount: 0,
+  prevColumnTimes: [0, 0, 0, 0],
 };
 
 /**

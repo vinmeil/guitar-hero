@@ -77,41 +77,8 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     /** Determines the rate of time steps */
     const tick$ = interval(Constants.TICK_RATE_MS);
     
-    // gets the column that the circle should go to
-    // FIXME: using mutable variables, change to immutable. this is just so i can play the songs nicely
-    let prev = [0, 0, 0, 0];
-    function getColumn(startTime: number, pitch: number, userPlayed: boolean): number {
-      const randomNumber = RNG.scale(RNG.hash(startTime)),
-            columns = [0, 1, 2, 3],
-            modifier = [-1, 1],
-            currentTime = startTime,
-            randomIndex = Math.floor(randomNumber * modifier.length),
-            initialColumn = Math.floor(randomNumber * columns.length);
-      
-      function findColumn(column: number, counter: number): number {
-        if (counter <= 0 || Math.abs(prev[column] - currentTime) > 0.150) {
-          return column;
-        }
-        const newColumn = (column + modifier[randomIndex] + 4) % 4;
-        return findColumn(newColumn, counter - 1);
-      }
-
-      const newColumn = findColumn(initialColumn, 3);
-
-      if (userPlayed) {
-        prev[newColumn] = currentTime
-      }
-
-      return newColumn;
-    }
-    
-    const columnColors = ["green", "red", "blue", "yellow"]
-    
     // process csv
     const values: string[] = csvContents.split("\n").slice(1).filter(Boolean);
-    
-    // get min and max pitch
-    const pitches: number[] = values.map((line) => Number(line.split(",")[3]));
     
     // turn everything to objects so its easier
     const notes: NoteType[] = values.map((line) => {
@@ -140,14 +107,12 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     const circleStream$ = from(notes).pipe(
       mergeMap(note => of(note).pipe(delay(note.start * 1000))),
       map(note => {
-        // const column = getColumn(note.start, note.pitch);
-        const column = getColumn(note.start, note.pitch, note.userPlayed);
         return new CreateCircle({
           id: "0",
           r: `${Note.RADIUS}`,
-          cx: `${((column + 1) * 20)}%`, // taken from examples above
+          cx: `0%`, // taken from examples above
           cy: Constants.START_Y,
-          style: `fill: ${columnColors[column]}`,
+          style: `fill: green`,
           class: "shadow",
           note: note,
           circleClicked: false,
@@ -157,8 +122,6 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
         })
       }),
     )
-
-    // TODO: change any to the correct type
 
     const action$ = merge(
       gameClock$,

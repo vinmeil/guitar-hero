@@ -118,6 +118,7 @@ type State = Readonly<{
   nGood: number,
   nMiss: number
   circleCount: number,
+  prevColumnTimes: ReadonlyArray<number>,
 }>
 
 /**
