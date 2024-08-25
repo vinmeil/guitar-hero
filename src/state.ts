@@ -123,7 +123,8 @@ class KeyUpHold implements Action {
     return {
       ...s,
       holdCircles: filteredHoldCircles.concat(newCircle),
-      combo: isMissed ? 0 : s.combo,
+      score: isMissed ? s.score : s.score + 1,
+      combo: isMissed ? 0 : s.combo + 1,
       nMiss: isMissed ? s.nMiss + 1 : s.nMiss,
     };
   }
@@ -205,8 +206,8 @@ class HitCircle implements Action {
       circleProps: updatedCircleProps,
       exit: s.exit.concat(newCircle),
       holdCircles: filteredHoldCircles.concat(newCircle),
-      combo: s.combo + 1,
-      score: s.score + 1,
+      combo: newCircle.isHoldNote ? s.combo : s.combo + 1,
+      score: newCircle.isHoldNote ? s.score: s.score + 1,
       nPerfect: hitPerfect ? s.nPerfect + 1 : s.nPerfect,
       nGreat: hitGreat ? s.nGreat + 1 : s.nGreat,
       nGood: hitGood ? s.nGood + 1 : s.nGood,
