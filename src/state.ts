@@ -12,26 +12,28 @@ class Tick implements Action {
    * @returns new State
    */
   apply(s: State): State {
-      const { movedCircleProps, movedTailProps, movedHoldCircles, movedBgCircleProps } = Tick.moveEverything({
+      const {
+        expiredCircles,
+        expiredBgCircles,
+        updatedCircleProps,
+        updatedBgCircleProps,
+        updatedTailProps,
+        expiredTails,
+        missed,
+        updatedHoldCircles
+      } = Tick.filterEverything({
         circleProps: [...s.circleProps],
         tailProps: [...s.tailProps],
         holdCircles: [...s.holdCircles],
         bgCircleProps: [...s.bgCircleProps]
       })
-
-      const { expiredCircles, expiredBgCircles, updatedCircleProps, updatedBgCircleProps, updatedTailProps, expiredTails, missed, updatedHoldCircles } = Tick.filterEverything({
-        movedCircleProps,
-        movedTailProps,
-        movedHoldCircles,
-        movedBgCircleProps
-      })
         
       return {
           ...s,
-          circleProps: updatedCircleProps,
-          bgCircleProps: updatedBgCircleProps,
-          tailProps: updatedTailProps,
-          holdCircles: updatedHoldCircles,
+          circleProps: updatedCircleProps.map(Tick.moveCircle),
+          bgCircleProps: updatedBgCircleProps.map(Tick.moveCircle),
+          tailProps: updatedTailProps.map(Tick.moveTail),
+          holdCircles: updatedHoldCircles.map(Tick.moveCircle),
           combo: missed ? 0 : s.combo,
           highestCombo: Math.max(s.combo, s.highestCombo),
           exit: expiredCircles.concat(expiredBgCircles),
@@ -42,10 +44,10 @@ class Tick implements Action {
   }
 
   static filterEverything = ({
-    movedCircleProps,
-    movedTailProps,
-    movedHoldCircles,
-    movedBgCircleProps
+    circleProps,
+    tailProps,
+    holdCircles,
+    bgCircleProps
   }: filterEverythingParams) => {
     const outOfBounds = (circle: Circle): boolean => (
       // userPlayed and !userPlayed have different timings to allow for user played circles
@@ -53,15 +55,15 @@ class Tick implements Action {
       ( Number(circle.cy) > Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA && circle.note.userPlayed )
     );
       
-    const expiredCircles = movedCircleProps.filter(circle => outOfBounds(circle) || circle.circleClicked),
-          expiredBgCircles = movedBgCircleProps.filter(outOfBounds),
-          updatedCircleProps = movedCircleProps.filter(not(outOfBounds)),
-          updatedBgCircleProps = movedBgCircleProps.filter(not(outOfBounds)),
-          updatedTailProps = movedTailProps.filter(tail => parseInt(tail.y1) < Constants.HITCIRCLE_CENTER),
-          expiredTails = movedTailProps.filter(tail => parseInt(tail.y1) >= Constants.HITCIRCLE_CENTER),
+    const expiredCircles = circleProps.filter(circle => outOfBounds(circle) || circle.circleClicked),
+          expiredBgCircles = bgCircleProps.filter(outOfBounds),
+          updatedCircleProps = circleProps.filter(not(outOfBounds)),
+          updatedBgCircleProps = bgCircleProps.filter(not(outOfBounds)),
+          updatedTailProps = tailProps.filter(tail => parseInt(tail.y1) < Constants.HITCIRCLE_CENTER),
+          expiredTails = tailProps.filter(tail => parseInt(tail.y1) >= Constants.HITCIRCLE_CENTER),
           missed = expiredCircles.find(circle => !circle.circleClicked && circle.note.userPlayed);
 
-    const updatedHoldCircles = movedHoldCircles.filter(circle =>
+    const updatedHoldCircles = holdCircles.filter(circle =>
       ( Number(circle.cy) <= Constants.HITCIRCLE_CENTER + // add length of tail
                               ( (1000 / Constants.TICK_RATE_MS) *
                               Constants.PIXELS_PER_TICK * circle.note.duration ) &&
@@ -70,20 +72,6 @@ class Tick implements Action {
     )
             
     return { expiredCircles, expiredBgCircles, updatedCircleProps, updatedBgCircleProps, updatedTailProps, expiredTails, missed, updatedHoldCircles };
-  }
-
-  static moveEverything = ({
-    circleProps,
-    tailProps,
-    holdCircles,
-    bgCircleProps
-  }: moveEverythingParams) => {
-    const movedCircleProps = circleProps.map(Tick.moveCircle),
-          movedTailProps = tailProps.map(Tick.moveTail),
-          movedHoldCircles = holdCircles.map(Tick.moveCircle),
-          movedBgCircleProps = bgCircleProps.map(Tick.moveCircle);
-
-    return { movedCircleProps, movedTailProps, movedHoldCircles, movedBgCircleProps }
   }
 
   static moveCircle = (circle: Circle): Circle => {

@@ -135,8 +135,8 @@ export type moveEverythingParams = {
 }
 
 export type filterEverythingParams = {
-  movedCircleProps: Circle[],
-  movedTailProps: CircleLine[],
-  movedHoldCircles: Circle[],
-  movedBgCircleProps: Circle[]
+  circleProps: Circle[],
+  tailProps: CircleLine[],
+  holdCircles: Circle[],
+  bgCircleProps: Circle[]
 }
