@@ -35,6 +35,28 @@ const Constants = {
   START_Y: "-15",
   PIXELS_PER_TICK: 4,
   NOTE_VOLUME_NORMALIZER: 10,
+  INSTRUMENTS: [
+    "bass-electric",
+    "bassoon",
+    "cello",
+    "clarinet",
+    "contrabass",
+    "flute",
+    "french-horn",
+    "guitar-acoustic",
+    "guitar-electric",
+    "guitar-nylon",
+    "harmonium",
+    "harp",
+    "organ",
+    "piano",
+    "saxophone",
+    "trombone",
+    "trumpet",
+    "tuba",
+    "violin",
+    "xylophone",
+],
 } as const;
 
 
@@ -62,7 +84,7 @@ type Circle = Readonly<{
   circleClicked: boolean,
   tailHeight?: number,
   isHoldNote: boolean,
-  audio: Tone.Sampler
+  audio?: Tone.Sampler
 }>
 
 type CircleLine = Readonly<{
@@ -91,10 +113,11 @@ type State = Readonly<{
   score: number,
   combo: number,
   highestCombo: number,
-  n300: number,
-  n100: number,
-  n50: number,
-  nmiss: number
+  nPerfect: number,
+  nGreat: number,
+  nGood: number,
+  nMiss: number
+  circleCount: number,
 }>
 
 /**

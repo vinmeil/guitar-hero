@@ -1,6 +1,6 @@
 import { SampleLibrary } from "./tonejs-instruments";
 import { Action, Circle, CircleLine, Constants, filterEverythingParams, moveEverythingParams, State, Viewport } from "./types";
-import { attr, generateUniqueId, not, playNote } from "./util";
+import { attr, generateUniqueId, getRandomDuration, not, playNote, RNG } from "./util";
 import * as Tone from "tone";
 
 export { Tick, CreateCircle, reduceState, initialState, HitCircle, KeyUpHold };
@@ -37,7 +37,7 @@ class Tick implements Action {
           exit: expiredCircles.concat(expiredBgCircles),
           exitTails: expiredTails,
           time: this.elapsed,
-          nmiss: missed ? s.nmiss + 1 : s.nmiss,
+          nMiss: missed ? s.nMiss + 1 : s.nMiss,
       };
   }
 
@@ -130,13 +130,13 @@ class KeyUpHold implements Action {
 
     const isMissed = Number(newCircle.cy) <=  Constants.HITCIRCLE_CENTER + // add length of tail
                                               ( (1000 / Constants.TICK_RATE_MS) *
-                                              Constants.PIXELS_PER_TICK * newCircle.note.duration ) - 50;
+                                              Constants.PIXELS_PER_TICK * newCircle.note.duration ) - 100;
     
     return {
       ...s,
       holdCircles: filteredHoldCircles.concat(newCircle),
       combo: isMissed ? 0 : s.combo,
-      nmiss: isMissed ? s.nmiss + 1 : s.nmiss,
+      nMiss: isMissed ? s.nMiss + 1 : s.nMiss,
     };
   }
 }
@@ -150,6 +150,7 @@ class HitCircle implements Action {
   apply(s: State): State {
     const col = Constants.COLUMN_KEYS.indexOf(this.key as "KeyA" | "KeyS" | "KeyK" | "KeyL");
     
+    // get the lowest circle in column to register hit
     const lowestCircleInColumn = s.circleProps
       .filter(circle => {
         const cy = Number(circle.cy);
@@ -159,9 +160,36 @@ class HitCircle implements Action {
                 circle.note.userPlayed;
       });
 
-      
+    // if user misclicks, add a circle that plays a random instrument for random duration in exit
     if (lowestCircleInColumn.length === 0) {
-      return s;
+      // + 1 because scale is [-1, 1], and / 2 to get [0, 1], -0.01 so it doesnt result in 1 which would give index OOB error
+      console.log("got here")
+      const randomNumber = RNG.scale(RNG.hash(s.circleCount)),
+            randomInstrumentIndex = Math.floor(randomNumber * Constants.INSTRUMENTS.length),
+            randomDuration = getRandomDuration(randomNumber) ,
+            newCircle = {
+        id: generateUniqueId(),
+        r: `${0.07 * Viewport.CANVAS_WIDTH}`,
+        cx: `${(col + 1) * 20}%`,
+        cy: Constants.HITCIRCLE_CENTER.toString(),
+        style: `fill: ${Constants.COLUMN_COLORS[col]}`,
+        class: "circle",
+        note: {
+          userPlayed: true,
+          instrument: Constants.INSTRUMENTS[randomInstrumentIndex],
+          velocity: Math.random(),
+          pitch: Math.floor(Math.random() * 127),
+          start: s.time,
+          end: s.time + randomDuration,
+          duration: randomDuration,
+        },
+        circleClicked: true,
+        isHoldNote: false,
+      } as Circle;
+      return {
+        ...s,
+        exit: s.exit.concat(newCircle),
+      };
     }
 
     const lowestCircle = lowestCircleInColumn
@@ -169,12 +197,20 @@ class HitCircle implements Action {
 
     const circleCy = Number(lowestCircle.cy),
           circleMarginFromCenter = Math.abs(Constants.HITCIRCLE_CENTER - circleCy),
-          hit300 = circleMarginFromCenter <= 25,
-          hit100 = circleMarginFromCenter > 25 && circleMarginFromCenter <= 55,
-          hit50 = circleMarginFromCenter > 55 && circleMarginFromCenter <= 90,
+          hitPerfect = circleMarginFromCenter <= 25,
+          hitGreat = circleMarginFromCenter > 25 && circleMarginFromCenter <= 55,
+          hitGood = circleMarginFromCenter > 55 && circleMarginFromCenter <= 90,
           updatedCircleProps = s.circleProps.filter(circle => circle.id !== lowestCircle.id),
           filteredHoldCircles = s.holdCircles.filter(circle => circle.id !== lowestCircle.id),
-          newCircle = { ...lowestCircle, circleClicked: true };
+          randomDuration = getRandomDuration(RNG.scale(RNG.hash(s.circleCount))),
+          newCircle = { 
+            ...lowestCircle,
+            circleClicked: true,
+            note: {
+              ...lowestCircle.note,
+              duration: hitGood ? randomDuration : lowestCircle.note.duration
+            }
+          };
 
     return {
       ...s,
@@ -183,9 +219,9 @@ class HitCircle implements Action {
       holdCircles: filteredHoldCircles.concat(newCircle),
       combo: s.combo + 1,
       score: s.score + 1,
-      n300: hit300 ? s.n300 + 1 : s.n300,
-      n100: hit100 ? s.n100 + 1 : s.n100,
-      n50: hit50 ? s.n50 + 1 : s.n50,
+      nPerfect: hitPerfect ? s.nPerfect + 1 : s.nPerfect,
+      nGreat: hitGreat ? s.nGreat + 1 : s.nGreat,
+      nGood: hitGood ? s.nGood + 1 : s.nGood,
     };
   }
 }
@@ -207,28 +243,32 @@ class CreateCircle implements Action {
       bgCircleProps: !isUserPlayed ? s.bgCircleProps.concat(this.circle) : s.bgCircleProps,
       tailProps: tail ? s.tailProps.concat(tail) : s.tailProps,
       holdCircles: this.circle.isHoldNote && this.circle.note.userPlayed ? s.holdCircles.concat(this.circle) : s.holdCircles,
+      circleCount: s.circleCount + 1,
     };
   }
 
   static createCircleSVG = (circle: Circle): CircleLine | undefined => {
+    // if circle isnt user_played circle, dont create svg
     if (!circle.note.userPlayed) {
       return undefined;
     }
 
+    // if circle already exists, dont create svg
     if (document.getElementById(circle.id)) {
       return undefined;
     }
 
-    const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
-      HTMLElement;
+    const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement & HTMLElement;
     const newCircle = document.createElementNS(svg.namespaceURI, "circle") as SVGElement;
     attr(newCircle, { ...circle });
     svg.appendChild(newCircle);
 
+    // if its not a hold note, dont create tail -> return now
     if (!circle.isHoldNote) {
       return undefined;
     }
 
+    // check just in case, if its a hold note then create a tail svg
     if (circle.isHoldNote && circle.tailHeight) {
       const tailProps = {
         id: generateUniqueId(),
@@ -260,10 +300,11 @@ const initialState: State = {
   score: 0,
   combo: 0,
   highestCombo: 0,
-  n300: 0,
-  n100: 0,
-  n50: 0,
-  nmiss: 0,
+  nPerfect: 0,
+  nGreat: 0,
+  nGood: 0,
+  nMiss: 0,
+  circleCount: 0
 };
 
 /**
