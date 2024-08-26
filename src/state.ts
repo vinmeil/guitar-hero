@@ -39,8 +39,10 @@ class Tick implements Action {
           highestCombo: Math.max(s.combo, s.highestCombo),
           exit: expiredCircles.concat(expiredBgCircles),
           exitTails: expiredTails,
-          time: this.elapsed,
+          // time: this.elapsed * Constants.TICK_RATE_MS,
+          time: this.elapsed * Constants.TICK_RATE_MS,
           nMiss: missed ? s.nMiss + 1 : s.nMiss,
+          gameEnd: this.elapsed * Constants.TICK_RATE_MS > s.lastNoteEndTime,
       };
   }
 
@@ -126,7 +128,6 @@ class KeyUpHold implements Action {
     return {
       ...s,
       holdCircles: filteredHoldCircles.concat(newCircle),
-      score: isMissed ? s.score : parseFloat((s.score + (1 * s.multiplier)).toFixed(2)),
       combo: isMissed ? 0 : s.combo + 1,
       multiplier: isMissed ? 1 : parseFloat((s.multiplier + (isIncreaseMultiplier ? 0.2 : 0)).toFixed(2)),
       nMiss: isMissed ? s.nMiss + 1 : s.nMiss,
@@ -190,8 +191,8 @@ class HitCircle implements Action {
       circleProps: updatedCircleProps,
       exit: s.exit.concat(newCircle),
       holdCircles: filteredHoldCircles.concat(newCircle),
-      combo: newCircle.isHoldNote ? s.combo : s.combo + 1,
-      score: newCircle.isHoldNote ? s.score: parseFloat((s.score + (1 * s.multiplier)).toFixed(2)),
+      combo: s.combo + 1,
+      score: parseFloat((s.score + (1 * s.multiplier)).toFixed(2)),
       multiplier: newCircle.isHoldNote ? s.multiplier : parseFloat((s.multiplier + (isIncreaseMultiplier ? 0.2 : 0)).toFixed(2)),
       nPerfect: hitPerfect ? s.nPerfect + 1 : s.nPerfect,
       nGreat: hitGreat ? s.nGreat + 1 : s.nGreat,
@@ -342,8 +343,10 @@ const initialState: State = {
   nGood: 0,
   nMiss: 0,
   circleCount: 0,
+  totalCircleCount: 0,
   prevColumnTimes: [0, 0, 0, 0],
   multiplier: 1,
+  lastNoteEndTime: 0,
 };
 
 /**

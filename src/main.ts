@@ -94,6 +94,12 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       } as const
     })
     
+    const newInitialState = {
+      ...initialState,
+      totalCircleCount: notes.length,
+      lastNoteEndTime: (Math.max(...notes.map(note => note.end)) * 1000) + (Viewport.CANVAS_HEIGHT / Constants.PIXELS_PER_TICK * Constants.TICK_RATE_MS), // convert to ms then add by time it takes to travel from top to bottom of canvas
+    };
+
     const gameClock$ = tick$.pipe(map(elapsed => new Tick(elapsed))),
           colOneKeyDown$ = key$("keydown", "KeyA").pipe(map(_ => new HitCircle("KeyA"))),
           colTwoKeyDown$ = key$("keydown", "KeyS").pipe(map(_ => new HitCircle("KeyS"))),
@@ -117,7 +123,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
           note: note,
           circleClicked: false,
           isHoldNote: note.end - note.start >= 1 && note.userPlayed ? true : false,
-          tailHeight: ( 1000 / Constants.TICK_RATE_MS ) * Constants.PIXELS_PER_TICK * (note.end - note.start) - 50,
+          tailHeight: ( 1000 / Constants.TICK_RATE_MS ) * Constants.PIXELS_PER_TICK * (note.end - note.start),
           audio: samples[note.instrument],
         })
       }),
@@ -138,7 +144,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
 
     const state$ = timer(3000).pipe( // add a 3 second delay to allow the instruments to load
       mergeMap(() => action$),
-      scan(reduceState, initialState),
+      scan(reduceState, newInitialState),
     );
 
     const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe()));
