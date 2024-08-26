@@ -82,6 +82,7 @@ type Circle = Readonly<{
   class: string,
   note: NoteType,
   circleClicked: boolean,
+  strokeWidth?: number,
   tailHeight?: number,
   isHoldNote: boolean,
   audio?: Tone.Sampler
@@ -122,6 +123,7 @@ type State = Readonly<{
   prevColumnTimes: ReadonlyArray<number>,
   multiplier: number,
   lastNoteEndTime: number,
+  isPaused: boolean,
 }>
 
 /**

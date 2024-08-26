@@ -39,7 +39,6 @@ class Tick implements Action {
           highestCombo: Math.max(s.combo, s.highestCombo),
           exit: expiredCircles.concat(expiredBgCircles),
           exitTails: expiredTails,
-          // time: this.elapsed * Constants.TICK_RATE_MS,
           time: this.elapsed * Constants.TICK_RATE_MS,
           nMiss: missed ? s.nMiss + 1 : s.nMiss,
           gameEnd: this.elapsed * Constants.TICK_RATE_MS > s.lastNoteEndTime,
@@ -54,6 +53,7 @@ class Tick implements Action {
   }: filterEverythingParams) => {
     const outOfBounds = (circle: Circle): boolean => (
       // userPlayed and !userPlayed have different timings to allow for user played circles
+      // to go past the hit circle
       ( Number(circle.cy) > Constants.HITCIRCLE_CENTER && !circle.note.userPlayed ) ||
       ( Number(circle.cy) > Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA && circle.note.userPlayed )
     );
@@ -128,7 +128,7 @@ class KeyUpHold implements Action {
     return {
       ...s,
       holdCircles: filteredHoldCircles.concat(newCircle),
-      combo: isMissed ? 0 : s.combo + 1,
+      combo: isMissed ? 0 : s.combo,
       multiplier: isMissed ? 1 : parseFloat((s.multiplier + (isIncreaseMultiplier ? 0.2 : 0)).toFixed(2)),
       nMiss: isMissed ? s.nMiss + 1 : s.nMiss,
     };
@@ -296,11 +296,6 @@ class CreateCircle implements Action {
       return undefined;
     }
 
-    const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement & HTMLElement;
-    const newCircle = document.createElementNS(svg.namespaceURI, "circle") as SVGElement;
-    attr(newCircle, { ...circle });
-    svg.appendChild(newCircle);
-
     // if its not a hold note, dont create tail -> return now
     if (!circle.isHoldNote) {
       return undefined;
@@ -318,15 +313,13 @@ class CreateCircle implements Action {
         strokeWidth: "15",
         opacity: "1",
       }
-      const tail = document.createElementNS(svg.namespaceURI, "line") as SVGElement;
-      attr(tail, { ...tailProps, "stroke-width": tailProps.strokeWidth });
-      svg.appendChild(tail);
+
       return tailProps;
     }
   }
 }
 
-const initialState: State = {
+const initialState: State = { 
   time: 0,
   circleProps: [],
   bgCircleProps: [],
@@ -347,6 +340,7 @@ const initialState: State = {
   prevColumnTimes: [0, 0, 0, 0],
   multiplier: 1,
   lastNoteEndTime: 0,
+  isPaused: false,
 };
 
 /**

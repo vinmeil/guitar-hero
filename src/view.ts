@@ -18,20 +18,23 @@ const updateView = (onFinish: () => void) => {
     const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
     HTMLElement;
 
-    const updateCircleView = (svg: HTMLElement) => (props: Circle | CircleLine) => {
+    const updateSVGView = (svg: HTMLElement) => (type: "circle" | "line") => (props: Circle | CircleLine) => {
       function createNewSVG() {
-        const newSVGObject = document.createElementNS(svg.namespaceURI, "circle") as SVGElement;
-        attr(newSVGObject, { ...props });
+        const newSVGObject = document.createElementNS(svg.namespaceURI, type) as SVGElement;
+        attr(newSVGObject, type === "line" ? { ...props, "stroke-width": props.strokeWidth } : { ...props });
+        svg.appendChild(newSVGObject)
         return newSVGObject;
       }
 
       const curSVG = document.getElementById(props.id) || createNewSVG();
-      attr(curSVG, { ...props });
+      attr(curSVG, type === "line" ? { ...props, "stroke-width": props.strokeWidth } : { ...props });
     }
 
+    const update = updateSVGView(svg)
+
     // update view of circles and tails
-    s.circleProps.forEach(updateCircleView(svg));
-    s.tailProps.forEach(updateCircleView(svg));
+    s.circleProps.forEach(update("circle"));
+    s.tailProps.forEach(update("line"));
     const scoreHTML = document.getElementById("scoreText");
     if (scoreHTML) {
       scoreHTML.textContent = `${s.score}`;

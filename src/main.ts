@@ -14,8 +14,8 @@
 
 import "./style.css";
 
-import { from, fromEvent, interval, merge, Observable, of, Subscription, timer } from "rxjs";
-import { map, filter, scan, mergeMap, delay, takeUntil, take, switchMap, toArray, tap, mergeWith, last } from "rxjs/operators";
+import { EMPTY, from, fromEvent, interval, merge, Observable, of, Subscription, timer } from "rxjs";
+import { map, filter, scan, mergeMap, delay, takeUntil, take, switchMap, toArray, tap, mergeWith, last, startWith } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { CreateCircle, initialState, HitCircle, reduceState, Tick, KeyUpHold } from "./state";
@@ -139,7 +139,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       colTwoKeyUp$,
       colThreeKeyUp$,
       colFourKeyUp$,
-      circleStream$
+      circleStream$,
     );
 
     const state$ = timer(3000).pipe( // add a 3 second delay to allow the instruments to load
