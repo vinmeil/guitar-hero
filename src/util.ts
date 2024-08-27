@@ -1,12 +1,5 @@
 import * as Tone from "tone";
-import { SampleLibrary } from "./tonejs-instruments";
 import { Circle, Constants, State } from "./types";
-import { map, Observable, scan } from "rxjs";
-
-const samples = SampleLibrary.load({
-  instruments: SampleLibrary.list,
-  baseUrl: "samples/",
-});
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // taken from asteroids and previous workshops/applieds

@@ -1,5 +1,5 @@
 import { SampleLibrary } from "./tonejs-instruments";
-import { Action, Circle, CircleLine, Constants, filterEverythingParams, moveEverythingParams, State, Viewport } from "./types";
+import { Action, Circle, CircleLine, Constants, filterEverythingParams, State, Viewport } from "./types";
 import { getNewMutliplier, getRandomDuration, not, RNG } from "./util";
 import * as Tone from "tone";
 

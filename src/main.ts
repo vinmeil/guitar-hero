@@ -14,14 +14,13 @@
 
 import "./style.css";
 
-import { EMPTY, from, fromEvent, interval, merge, Observable, of, Subscription, timer } from "rxjs";
-import { map, filter, scan, mergeMap, delay, takeUntil, take, switchMap, toArray, tap, mergeWith, last, startWith } from "rxjs/operators";
+import { from, fromEvent, interval, merge, of, Subscription, timer } from "rxjs";
+import { map, filter, scan, mergeMap, delay } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { CreateCircle, initialState, HitCircle, reduceState, Tick, KeyUpHold } from "./state";
-import { Action, Circle, Constants, NoteType, State, Viewport } from "./types";
+import { Constants, NoteType, State, Viewport } from "./types";
 import { updateView } from "./view";
-import { playNote, RNG } from "./util";
 
 /** Constants */
 
@@ -44,12 +43,6 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     // Canvas elements
     const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement &
         HTMLElement;
-    const preview = document.querySelector(
-        "#svgPreview",
-    ) as SVGGraphicsElement & HTMLElement;
-    const gameover = document.querySelector("#gameOver") as SVGGraphicsElement &
-        HTMLElement;
-    const container = document.querySelector("#main") as HTMLElement;
 
     svg.setAttribute("height", `${Viewport.CANVAS_HEIGHT}`);
     svg.setAttribute("width", `${Viewport.CANVAS_WIDTH}`);
@@ -68,7 +61,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     // process csv
     const values: string[] = csvContents.split("\n").slice(1).filter(Boolean);
     
-    // turn everything to objects so its easier
+    // turn everything to objects so its easier to process
     const notes: NoteType[] = values.map((line) => {
       const splitLine = line.split(",");
       return {
@@ -87,6 +80,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       lastNoteEndTime: (Math.max(...notes.map(note => note.end)) * 1000) + (Viewport.CANVAS_HEIGHT / Constants.PIXELS_PER_TICK * Constants.TICK_RATE_MS), // convert to ms then add by time it takes to travel from top to bottom of canvas
     };
 
+    // streams
     const gameClock$ = tick$.pipe(map(elapsed => new Tick(elapsed))),
           colOneKeyDown$ = key$("keydown", "KeyA").pipe(map(_ => new HitCircle("KeyA"))),
           colTwoKeyDown$ = key$("keydown", "KeyS").pipe(map(_ => new HitCircle("KeyS"))),

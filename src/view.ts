@@ -1,7 +1,5 @@
-import { delay, of, take } from "rxjs";
-import { Circle, CircleLine, Constants, State, Viewport } from "./types"
+import { Circle, CircleLine, Constants, State } from "./types"
 import { attr, getAccuracy, isNotNullOrUndefined, playNote, releaseNote } from "./util";
-import { SampleLibrary } from "./tonejs-instruments";
 import * as Tone from "tone";
 
 export { updateView }
