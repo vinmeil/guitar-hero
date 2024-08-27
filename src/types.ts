@@ -11,13 +11,13 @@ const Viewport = {
 const Constants = {
   TICK_RATE_MS: 6,
   // SONG_NAME: "RockinRobin",
-  // SONG_NAME: "ComparedChild",
+  SONG_NAME: "ComparedChild",
   // SONG_NAME: "ComparedChildNoBG",
   // SONG_NAME: "BusToAnotherWorld",
   // SONG_NAME: "UnderKids",
   // SONG_NAME: "RainingAfterAll",
   // SONG_NAME: "LowAsDirt",
-  SONG_NAME: "TestHold",
+  // SONG_NAME: "TestHold",
   // SONG_NAME: "DifficultMode",
   // SONG_NAME: "TrappedInThePast",
   // SONG_NAME: "MouIiKai",
@@ -34,7 +34,7 @@ const Constants = {
   USERPLAYED_CIRCLE_VISIBLE_EXTRA: 40,
   START_Y: "-15",
   PIXELS_PER_TICK: 4,
-  NOTE_VOLUME_NORMALIZER: 10,
+  NOTE_VOLUME_NORMALIZER: 60,
   INSTRUMENTS: [
     "bass-electric",
     "bassoon",
@@ -85,7 +85,7 @@ type Circle = Readonly<{
   strokeWidth?: number,
   tailHeight?: number,
   isHoldNote: boolean,
-  audio?: Tone.Sampler
+  audio: Tone.Sampler
 }>
 
 type CircleLine = Readonly<{
@@ -119,11 +119,9 @@ type State = Readonly<{
   nGood: number,
   nMiss: number
   circleCount: number,
-  totalCircleCount: number,
   prevColumnTimes: ReadonlyArray<number>,
   multiplier: number,
   lastNoteEndTime: number,
-  isPaused: boolean,
 }>
 
 /**

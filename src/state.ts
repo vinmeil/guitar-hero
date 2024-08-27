@@ -336,11 +336,9 @@ const initialState: State = {
   nGood: 0,
   nMiss: 0,
   circleCount: 0,
-  totalCircleCount: 0,
   prevColumnTimes: [0, 0, 0, 0],
   multiplier: 1,
   lastNoteEndTime: 0,
-  isPaused: false,
 };
 
 /**

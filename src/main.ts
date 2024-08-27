@@ -54,13 +54,6 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     svg.setAttribute("height", `${Viewport.CANVAS_HEIGHT}`);
     svg.setAttribute("width", `${Viewport.CANVAS_WIDTH}`);
 
-    // Text fields
-    const multiplier = document.querySelector("#multiplierText") as HTMLElement;
-    const scoreText = document.querySelector("#scoreText") as HTMLElement;
-    const highScoreText = document.querySelector(
-        "#highScoreText",
-    ) as HTMLElement;
-
     /** User input */
 
     const key$ = (e: Event, k: Key) =>
@@ -68,11 +61,6 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
         .pipe(
           filter(({ code }) => code === k),
           filter(({ repeat }) => !repeat))
-
-    // const key$ = fromEvent<KeyboardEvent>(document, "keypress");
-
-    // const fromKey = (keyCode: Key) =>
-    //     key$.pipe(filter(({ code }) => code === keyCode));
 
     /** Determines the rate of time steps */
     const tick$ = interval(Constants.TICK_RATE_MS);
@@ -94,9 +82,8 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       } as const
     })
     
-    const newInitialState = {
+    const newInitialState: State = {
       ...initialState,
-      totalCircleCount: notes.length,
       lastNoteEndTime: (Math.max(...notes.map(note => note.end)) * 1000) + (Viewport.CANVAS_HEIGHT / Constants.PIXELS_PER_TICK * Constants.TICK_RATE_MS), // convert to ms then add by time it takes to travel from top to bottom of canvas
     };
 

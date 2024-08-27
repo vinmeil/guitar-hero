@@ -32,6 +32,10 @@ export abstract class RNG {
  */
 public static scale = (hash: number) => (2 * hash) / (RNG.m - 1) / 2;
 }
+
+export function isNotNullOrUndefined<T extends object>(input: null | undefined | T): input is T {
+  return input != null;
+}
 //////////////////////////////////////////////////////////////////////////////////////////
 
 export const getRandomDuration = (randomNumber: number): number => {
@@ -39,42 +43,34 @@ export const getRandomDuration = (randomNumber: number): number => {
 }
 
 const playNote = (circle: Circle) => {
-  const { instrument, pitch, duration, velocity } = circle.note;
-  const normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / Constants.NOTE_VOLUME_NORMALIZER // divide because it is DAMN loud
+  const { instrument, pitch, duration, velocity } = circle.note,
+        { isHoldNote, audio } = circle,
+        normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / Constants.NOTE_VOLUME_NORMALIZER // divide because it is DAMN loud
   
   Tone.ToneAudioBuffer.loaded().then(() => {
-    if (samples[instrument]) {
-      samples[instrument].toDestination();
-      samples[instrument].triggerAttackRelease(
-        Tone.Frequency(pitch, "midi").toNote(), // Convert MIDI note to frequency
-        duration, // has to be in seconds
-        undefined, // Use default time for note onset
-        normalizedVelocity
-      );
-    } else {
-      console.error(`Instrument ${instrument} not found in samples.`);
+    if (!audio) {
+      return;
     }
-  });
-  
-  return undefined;
-};
 
-export const playAttack = (circle: Circle) => {
-  const { pitch, velocity } = circle.note;
-  const normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / Constants.NOTE_VOLUME_NORMALIZER // divide because it is DAMN loud
-  
-  Tone.ToneAudioBuffer.loaded().then(() => {
-    if (circle.audio) {
+    audio.toDestination();
+    if (isHoldNote) {
       circle.audio.triggerAttack(
         Tone.Frequency(pitch, "midi").toNote(),
         Tone.now(),
         normalizedVelocity
       );
+    } else {
+      audio.triggerAttackRelease(
+        Tone.Frequency(pitch, "midi").toNote(), // Convert MIDI note to frequency
+        duration, // has to be in seconds
+        undefined, // Use default time for note onset
+        normalizedVelocity
+      );
     }
   });
-}
+};
 
-export const playRelease = (circle: Circle) => {
+export const releaseNote = (circle: Circle) => {
   const { pitch } = circle.note;
   Tone.ToneAudioBuffer.loaded().then(() => {
     if (circle.audio) {
