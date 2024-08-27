@@ -1,7 +1,5 @@
-import { SampleLibrary } from "./tonejs-instruments";
 import { Action, Circle, CircleLine, Constants, filterEverythingParams, State, Viewport } from "./types";
-import { getNewMutliplier, getRandomDuration, not, RNG } from "./util";
-import * as Tone from "tone";
+import { circleOutOfBounds, getColumn, getNewMutliplier, getRandomDuration, not, RNG, tailOutOfBounds } from "./util";
 
 export { Tick, CreateCircle, reduceState, initialState, HitCircle, KeyUpHold };
 
@@ -10,14 +8,8 @@ class Tick implements Action {
 
   apply(s: State): State {
       const {
-        expiredCircles,
-        expiredBgCircles,
-        updatedCircleProps,
-        updatedBgCircleProps,
-        updatedTailProps,
-        expiredTails,
-        missed,
-        updatedHoldCircles
+          expiredCircles, expiredBgCircles, updatedCircleProps, updatedBgCircleProps,
+          updatedTailProps, expiredTails, missed, updatedHoldCircles
       } = Tick.filterEverything({
         circleProps: [...s.circleProps],
         tailProps: [...s.tailProps],
@@ -48,15 +40,6 @@ class Tick implements Action {
     holdCircles,
     bgCircleProps
   }: filterEverythingParams) => {
-    const circleOutOfBounds = (circle: Circle): boolean => (
-      // userPlayed and !userPlayed have different timings to allow for user played circles
-      // to go past the hit circle
-      ( !circle.note.userPlayed && Number(circle.cy) > Constants.HITCIRCLE_CENTER ) ||
-      ( circle.note.userPlayed  && Number(circle.cy) > Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA )
-    );
-
-    const tailOutOfBounds = (tail: CircleLine): boolean => parseInt(tail.y1) >= Constants.HITCIRCLE_CENTER;
-      
     const expiredCircles = circleProps.filter(circle => circleOutOfBounds(circle) || circle.circleClicked),
           expiredBgCircles = bgCircleProps.filter(circleOutOfBounds),
           updatedCircleProps = circleProps.filter(not(circleOutOfBounds)),
@@ -73,7 +56,10 @@ class Tick implements Action {
                               Constants.PIXELS_PER_TICK * circle.note.duration ) )
     )
             
-    return { expiredCircles, expiredBgCircles, updatedCircleProps, updatedBgCircleProps, updatedTailProps, expiredTails, missed, updatedHoldCircles };
+    return {
+      expiredCircles, expiredBgCircles, updatedCircleProps, updatedBgCircleProps,
+      updatedTailProps, expiredTails, missed, updatedHoldCircles
+    };
   }
 
   static moveCircle = (circle: Circle): Circle => {
@@ -238,7 +224,7 @@ class CreateCircle implements Action {
    * @returns new State
    */
   apply(s: State): State {
-    const [column, updatedPrevTimeInColumn] = CreateCircle.getColumn(this.circle.note.start, this.circle.note.userPlayed, s);
+    const [column, updatedPrevTimeInColumn] = getColumn(this.circle, s);
 
     const newCircle = {
       ...this.circle,
@@ -259,32 +245,6 @@ class CreateCircle implements Action {
       circleCount: s.circleCount + 1,
       prevTimeInColumn: updatedPrevTimeInColumn,
     };
-  }
-
-  static getColumn(startTime: number, userPlayed: boolean, s: State): [number, readonly number[]] {
-    const randomNumber = RNG.scale(RNG.hash(startTime * 1000)),
-          columns = [0, 1, 2, 3],
-          modifier = [-1, 1],
-          currentTime = startTime,
-          randomIndex = Math.floor(randomNumber * modifier.length),
-          initialColumn = Math.floor(randomNumber * columns.length);
-    
-    function findColumn(column: number, counter: number): number {
-      if (counter <= 0 || Math.abs(s.prevTimeInColumn[column] - currentTime) > 0.150) {
-        return column;
-      }
-      const newColumn = (column + modifier[randomIndex] + 4) % 4;
-      return findColumn(newColumn, counter - 1);
-    }
-
-    const newColumn = findColumn(initialColumn, 3);
-
-    const updatedPrevColumnTimes =
-      userPlayed
-        ? s.prevTimeInColumn.map((time, index) => index === newColumn ? currentTime : time)
-        : s.prevTimeInColumn;
-
-    return [newColumn, updatedPrevColumnTimes];
   }
 
   static createTail = (circle: Circle): CircleLine | undefined => {

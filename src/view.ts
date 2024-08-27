@@ -1,6 +1,5 @@
 import { Circle, CircleLine, Constants, State } from "./types"
 import { attr, getAccuracy, isNotNullOrUndefined, playNote, releaseNote } from "./util";
-import * as Tone from "tone";
 
 export { updateView }
 
@@ -61,7 +60,7 @@ const updateView = (onFinish: () => void) => {
     // remove and play audio for circles that have exited the screen
     s.exit
       .map((circle) => {
-        // play note if circle is not userPlayed or if circle is clicked 
+        // play note if circle is not userPlayed (bg audio) or if circle is clicked 
         if (!circle.note.userPlayed || circle.circleClicked) {
           playNote(circle);
         }
@@ -78,10 +77,9 @@ const updateView = (onFinish: () => void) => {
       .forEach(circle => {
         // check if the circle is either not being held down or
         // if the circle has reached the end of its duration (using y coordinate)
-        if (!circle.circleClicked ||
-            Number(circle.cy) >=  Constants.HITCIRCLE_CENTER + // add length of tail
-                                  ( (1000 / Constants.TICK_RATE_MS) *
-                                  Constants.PIXELS_PER_TICK * circle.note.duration )
+        if (!circle.circleClicked ||  Number(circle.cy) >=  Constants.HITCIRCLE_CENTER + // add length of tail
+                                      ( (1000 / Constants.TICK_RATE_MS) *
+                                      Constants.PIXELS_PER_TICK * circle.note.duration )
         ) {
           releaseNote(circle);
         }

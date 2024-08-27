@@ -1,5 +1,5 @@
 import * as Tone from "tone";
-import { Circle, Constants, State } from "./types";
+import { Circle, CircleLine, Constants, State } from "./types";
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // taken from asteroids and previous workshops/applieds
@@ -93,6 +93,46 @@ export const getNewMutliplier = (s: State): number => {
   }
 
   return s.multiplier;
+}
+
+/** checks if circle is out of bounds / has gone past the hit circles */
+export const circleOutOfBounds = (circle: Circle): boolean => (
+  // userPlayed and !userPlayed have different timings to allow for user played circles
+  // to go past the hit circle
+  ( !circle.note.userPlayed && Number(circle.cy) > Constants.HITCIRCLE_CENTER ) ||
+  ( circle.note.userPlayed  && Number(circle.cy) > Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA )
+);
+
+/** checks if tail's y1 (top y coordinate) has gone past hit circles */
+export const tailOutOfBounds = (tail: CircleLine): boolean => parseInt(tail.y1) >= Constants.HITCIRCLE_CENTER;
+
+/** gets the column for the current circle */
+export const getColumn = (circle: Circle, s: State): [number, readonly number[]] => {
+  const { start, userPlayed } = circle.note,
+        { prevTimeInColumn } = s,
+        randomNumber = RNG.scale(RNG.hash(start * 1000)),
+        columns = [0, 1, 2, 3],
+        modifier = [-1, 1],
+        currentTime = start,
+        randomIndex = Math.floor(randomNumber * modifier.length),
+        initialColumn = Math.floor(randomNumber * columns.length);
+  
+  function findColumn(column: number, counter: number): number {
+    if (counter <= 0 || Math.abs(prevTimeInColumn[column] - currentTime) > 0.150) {
+      return column;
+    }
+    const newColumn = (column + modifier[randomIndex] + 4) % 4;
+    return findColumn(newColumn, counter - 1);
+  }
+
+  const newColumn = findColumn(initialColumn, 3);
+
+  const updatedPrevColumnTimes =
+    userPlayed
+      ? prevTimeInColumn.map((time, index) => index === newColumn ? currentTime : time)
+      : prevTimeInColumn;
+
+  return [newColumn, updatedPrevColumnTimes];
 }
 
 

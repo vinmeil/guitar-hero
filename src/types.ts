@@ -11,11 +11,11 @@ const Viewport = {
 const Constants = {
   TICK_RATE_MS: 6,
   // SONG_NAME: "RockinRobin",
-  // SONG_NAME: "ComparedChild",
+  SONG_NAME: "ComparedChild",
   // SONG_NAME: "ComparedChildNoBG",
   // SONG_NAME: "BusToAnotherWorld",
   // SONG_NAME: "UnderKids",
-  SONG_NAME: "RainingAfterAll",
+  // SONG_NAME: "RainingAfterAll",
   // SONG_NAME: "LowAsDirt",
   // SONG_NAME: "TestHold",
   // SONG_NAME: "DifficultMode",
@@ -126,10 +126,6 @@ type State = Readonly<{
   multiplier: number,
   lastNoteEndTime: number,
 }>
-
-/**
- * Actions modify state
- */
 interface Action {
   apply(s: State): State;
 }
