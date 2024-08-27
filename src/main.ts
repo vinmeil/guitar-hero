@@ -62,6 +62,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     const values: string[] = csvContents.split("\n").slice(1).filter(Boolean);
     
     // turn everything to objects so its easier to process
+    const timeFromTopToBottom = (Viewport.CANVAS_HEIGHT / Constants.PIXELS_PER_TICK * Constants.TICK_RATE_MS)
     const notes: NoteType[] = values.map((line) => {
       const splitLine = line.split(","),
             userPlayed = splitLine[0],
@@ -77,15 +78,15 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
         instrument,
         velocity,
         pitch,
-        start,
-        end,
+        start: start,
+        end: end,
         duration,
       } as const
     })
     
     const newInitialState: State = {
       ...initialState,
-      lastNoteEndTime: (Math.max(...notes.map(note => note.end)) * 1000) + (Viewport.CANVAS_HEIGHT / Constants.PIXELS_PER_TICK * Constants.TICK_RATE_MS), // convert to ms then add by time it takes to travel from top to bottom of canvas
+      lastNoteEndTime: (Math.max(...notes.map(note => note.end)) * 1000) + timeFromTopToBottom, // convert to ms then add by time it takes to travel from top to bottom of canvas
     };
 
     // streams
@@ -112,7 +113,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
           note: note,
           circleClicked: false,
           isHoldNote: note.end - note.start >= 1 && note.userPlayed ? true : false,
-          tailHeight: ( 1000 / Constants.TICK_RATE_MS ) * Constants.PIXELS_PER_TICK * (note.end - note.start),
+          tailHeight: ( 1000 / Constants.TICK_RATE_MS ) * Constants.PIXELS_PER_TICK * (note.duration),
           audio: samples[note.instrument],
         })
       }),

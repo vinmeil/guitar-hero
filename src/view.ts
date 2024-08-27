@@ -22,9 +22,9 @@ const updateView = (onFinish: () => void) => {
           multiplierText = document.getElementById("multiplierText") as SVGGraphicsElement & HTMLElement;
 
     // this function updates the views/positions of the circles and the tails on the SVG
-    const updateSVGView = (svg: HTMLElement) => (type: "circle" | "line") => (props: Circle | CircleLine) => {
-      function createNewSVG() {
-        const newSVGObject = document.createElementNS(svg.namespaceURI, type) as SVGElement;
+    const updateSVGView = <T extends SVGElement>(svg: HTMLElement) => (type: "circle" | "line") => (props: Circle | CircleLine) => {
+      function createNewSVG(): T {
+        const newSVGObject = document.createElementNS(svg.namespaceURI, type) as T;
         attr(newSVGObject, { ...props, "stroke-width": props.strokeWidth });
         svg.appendChild(newSVGObject)
         return newSVGObject;
