@@ -78,8 +78,8 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
         instrument,
         velocity,
         pitch,
-        start: start,
-        end: end,
+        start,
+        end,
         duration,
       } as const
     })
