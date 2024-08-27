@@ -1,6 +1,6 @@
 import { SampleLibrary } from "./tonejs-instruments";
 import { Action, Circle, CircleLine, Constants, filterEverythingParams, moveEverythingParams, State, Viewport } from "./types";
-import { attr, getRandomDuration, not, playNote, RNG } from "./util";
+import { getNewMutliplier, getRandomDuration, not, RNG } from "./util";
 import * as Tone from "tone";
 
 export { Tick, CreateCircle, reduceState, initialState, HitCircle, KeyUpHold };
@@ -51,47 +51,46 @@ class Tick implements Action {
     holdCircles,
     bgCircleProps
   }: filterEverythingParams) => {
-    const outOfBounds = (circle: Circle): boolean => (
+    const circleOutOfBounds = (circle: Circle): boolean => (
       // userPlayed and !userPlayed have different timings to allow for user played circles
       // to go past the hit circle
-      ( Number(circle.cy) > Constants.HITCIRCLE_CENTER && !circle.note.userPlayed ) ||
-      ( Number(circle.cy) > Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA && circle.note.userPlayed )
+      ( !circle.note.userPlayed && Number(circle.cy) > Constants.HITCIRCLE_CENTER ) ||
+      ( circle.note.userPlayed  && Number(circle.cy) > Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA )
     );
+
+    const tailOutOfBounds = (tail: CircleLine): boolean => parseInt(tail.y1) >= Constants.HITCIRCLE_CENTER;
       
-    const expiredCircles = circleProps.filter(circle => outOfBounds(circle) || circle.circleClicked),
-          expiredBgCircles = bgCircleProps.filter(outOfBounds),
-          updatedCircleProps = circleProps.filter(not(outOfBounds)),
-          updatedBgCircleProps = bgCircleProps.filter(not(outOfBounds)),
-          updatedTailProps = tailProps.filter(tail => parseInt(tail.y1) < Constants.HITCIRCLE_CENTER),
-          expiredTails = tailProps.filter(tail => parseInt(tail.y1) >= Constants.HITCIRCLE_CENTER),
+    const expiredCircles = circleProps.filter(circle => circleOutOfBounds(circle) || circle.circleClicked),
+          expiredBgCircles = bgCircleProps.filter(circleOutOfBounds),
+          updatedCircleProps = circleProps.filter(not(circleOutOfBounds)),
+          updatedBgCircleProps = bgCircleProps.filter(not(circleOutOfBounds)),
+          updatedTailProps = tailProps.filter(not(tailOutOfBounds)),
+          expiredTails = tailProps.filter(tailOutOfBounds),
           missed = expiredCircles.find(circle => !circle.circleClicked && circle.note.userPlayed);
 
     const updatedHoldCircles = holdCircles.filter(circle =>
-      ( Number(circle.cy) <= Constants.HITCIRCLE_CENTER + // add length of tail
+      ( circle.isHoldNote &&
+        circle.circleClicked &&
+        Number(circle.cy) <= Constants.HITCIRCLE_CENTER + // add length of tail to allow for triggerRelease
                               ( (1000 / Constants.TICK_RATE_MS) *
-                              Constants.PIXELS_PER_TICK * circle.note.duration ) &&
-        circle.isHoldNote &&
-        circle.circleClicked ) 
+                              Constants.PIXELS_PER_TICK * circle.note.duration ) )
     )
             
     return { expiredCircles, expiredBgCircles, updatedCircleProps, updatedBgCircleProps, updatedTailProps, expiredTails, missed, updatedHoldCircles };
   }
 
   static moveCircle = (circle: Circle): Circle => {
-    const newCy = Number(circle.cy) + Constants.PIXELS_PER_TICK;
     return {
       ...circle,
-      cy: `${newCy}`,
+      cy: `${Number(circle.cy) + Constants.PIXELS_PER_TICK}`,
     }
   }
 
   static moveTail = (tail: CircleLine): CircleLine => {
-    const newY1 = parseInt(tail.y1) + Constants.PIXELS_PER_TICK;
-    const newY2 = Math.min(parseInt(tail.y2) + Constants.PIXELS_PER_TICK, Constants.HITCIRCLE_CENTER);
     return {
       ...tail,
-      y1: `${newY1}`,
-      y2: `${newY2}`,
+      y1: `${parseInt(tail.y1) + Constants.PIXELS_PER_TICK}`,
+      y2: `${Math.min(parseInt(tail.y2) + Constants.PIXELS_PER_TICK, Constants.HITCIRCLE_CENTER)}`,
     };
   }
 }
@@ -103,13 +102,16 @@ class KeyUpHold implements Action {
     const col = Constants.COLUMN_KEYS.indexOf(this.key);
     const colPercentage = Constants.COLUMN_PERCENTAGES[col];
 
-    // this should always return an array of 1 or 0 elements since there can only be clickable hold circle
+    // this should always return an array of 1 or 0 elements since there can only be 1 clickable hold circle
     // in 1 column at one singular time
-    const clickedHoldCirclesInColumn = s.holdCircles.filter(circle => 
-                                                        circle.cx === colPercentage &&
-                                                        circle.note.userPlayed &&
-                                                        circle.circleClicked
-                                                    );
+    const clickedHoldCirclesInColumn =
+      s.holdCircles.filter(circle => 
+        circle.cx === colPercentage &&
+        circle.note.userPlayed &&
+        circle.circleClicked
+      );
+
+    // if theres no hold circles in the column where the user keyups, just return
     if (clickedHoldCirclesInColumn.length === 0) {
       return s;
     }
@@ -123,13 +125,11 @@ class KeyUpHold implements Action {
                                               ( (1000 / Constants.TICK_RATE_MS) *
                                               Constants.PIXELS_PER_TICK * newCircle.note.duration ) - 100;
 
-    const isIncreaseMultiplier = s.combo % 10 == 0 && s.combo > 0;
-    
     return {
       ...s,
       holdCircles: filteredHoldCircles.concat(newCircle),
       combo: isMissed ? 0 : s.combo,
-      multiplier: isMissed ? 1 : parseFloat((s.multiplier + (isIncreaseMultiplier ? 0.2 : 0)).toFixed(2)),
+      multiplier: isMissed ? 1 : getNewMutliplier(s),
       nMiss: isMissed ? s.nMiss + 1 : s.nMiss,
     };
   }
@@ -142,21 +142,20 @@ class HitCircle implements Action {
    * @returns new State
    */
   apply(s: State): State {
-    const col = Constants.COLUMN_KEYS.indexOf(this.key);
+    const colIndex = Constants.COLUMN_KEYS.indexOf(this.key);
     
-    // get the lowest circle in column to register hit
+    // get the hittable circles in column to register hit
     const playableCirclesInColumn = s.circleProps
       .filter(circle => {
         const cy = Number(circle.cy);
-        return  cy >= Constants.HITCIRCLE_CENTER - Constants.HITCIRCLE_RANGE &&
-                cy <= Constants.HITCIRCLE_CENTER + Constants.HITCIRCLE_RANGE + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA &&
-                circle.cx == `${(col + 1) * 20}%` &&
-                circle.note.userPlayed;
+        return  circle.note.userPlayed &&
+                circle.cx == `${(colIndex + 1) * 20}%` &&
+                cy >= Constants.HITCIRCLE_CENTER - Constants.HITCIRCLE_RANGE &&
+                cy <= Constants.HITCIRCLE_CENTER + Constants.HITCIRCLE_RANGE + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA;
       });
 
     // if user misclicks, add a circle that plays a random instrument for random duration in exit
     if (playableCirclesInColumn.length === 0) {
-      // + 1 because scale is [-1, 1], and / 2 to get [0, 1], -0.01 so it doesnt result in 1 which would give index OOB error
       const newCircle = HitCircle.createRandomNoteCircle(s);
       return {
         ...s,
@@ -164,14 +163,20 @@ class HitCircle implements Action {
       };
     }
 
+    // find lowest circle in column to register hit
     const lowestCircle = playableCirclesInColumn
       .reduce((acc, cur) => (Number(cur.cy) > Number(acc.cy) ? cur : acc), playableCirclesInColumn[0]);
 
     const circleCy = Number(lowestCircle.cy),
           circleMarginFromCenter = Math.abs(Constants.HITCIRCLE_CENTER - circleCy),
-          hitPerfect = circleMarginFromCenter <= 25,
-          hitGreat = circleMarginFromCenter > 25 && circleMarginFromCenter <= 55,
-          hitGood = circleMarginFromCenter > 55 && circleMarginFromCenter <= 90,
+          hitPerfect =
+            circleMarginFromCenter <= Constants.HIT_PERFECT_RANGE_END,
+          hitGreat =
+            circleMarginFromCenter > Constants.HIT_PERFECT_RANGE_END &&
+            circleMarginFromCenter <= Constants.HIT_GREAT_RANGE_END,
+          hitGood =
+            circleMarginFromCenter > Constants.HIT_GREAT_RANGE_END &&
+            circleMarginFromCenter <= Constants.HIT_GOOD_RANGE_END,
           updatedCircleProps = s.circleProps.filter(circle => circle.id !== lowestCircle.id),
           filteredHoldCircles = s.holdCircles.filter(circle => circle.id !== lowestCircle.id),
           randomDuration = getRandomDuration(RNG.scale(RNG.hash(s.circleCount))),
@@ -184,8 +189,6 @@ class HitCircle implements Action {
             }
           };
 
-    const isIncreaseMultiplier = s.combo % 10 == 0 && s.combo > 0;
-
     return {
       ...s,
       circleProps: updatedCircleProps,
@@ -193,13 +196,13 @@ class HitCircle implements Action {
       holdCircles: filteredHoldCircles.concat(newCircle),
       combo: s.combo + 1,
       score: parseFloat((s.score + (1 * s.multiplier)).toFixed(2)),
-      multiplier: newCircle.isHoldNote ? s.multiplier : parseFloat((s.multiplier + (isIncreaseMultiplier ? 0.2 : 0)).toFixed(2)),
+      multiplier: getNewMutliplier(s),
       nPerfect: hitPerfect ? s.nPerfect + 1 : s.nPerfect,
       nGreat: hitGreat ? s.nGreat + 1 : s.nGreat,
       nGood: hitGood ? s.nGood + 1 : s.nGood,
     };
   }
-
+ 
   static createRandomNoteCircle = (s: State): Circle => {
     const randomNumber = RNG.scale(RNG.hash(s.circleCount)),
           randomInstrumentIndex = Math.floor(randomNumber * Constants.INSTRUMENTS.length),
@@ -237,7 +240,7 @@ class CreateCircle implements Action {
    * @returns new State
    */
   apply(s: State): State {
-    const [column, updatedPrevColumnTimes] = CreateCircle.getColumn(this.circle.note.start, this.circle.note.userPlayed, s);
+    const [column, updatedPrevTimeInColumn] = CreateCircle.getColumn(this.circle.note.start, this.circle.note.userPlayed, s);
 
     const newCircle = {
       ...this.circle,
@@ -246,7 +249,7 @@ class CreateCircle implements Action {
       style: `fill: ${Constants.COLUMN_COLORS[column]}`
     }
 
-    const tail = CreateCircle.createSVG(newCircle);
+    const tail = CreateCircle.createTail(newCircle);
     const isUserPlayed = newCircle.note.userPlayed;
 
     return {
@@ -256,7 +259,7 @@ class CreateCircle implements Action {
       tailProps: tail ? s.tailProps.concat(tail) : s.tailProps,
       holdCircles: newCircle.isHoldNote && newCircle.note.userPlayed ? s.holdCircles.concat(newCircle) : s.holdCircles,
       circleCount: s.circleCount + 1,
-      prevColumnTimes: updatedPrevColumnTimes,
+      prevTimeInColumn: updatedPrevTimeInColumn,
     };
   }
 
@@ -269,7 +272,7 @@ class CreateCircle implements Action {
           initialColumn = Math.floor(randomNumber * columns.length);
     
     function findColumn(column: number, counter: number): number {
-      if (counter <= 0 || Math.abs(s.prevColumnTimes[column] - currentTime) > 0.150) {
+      if (counter <= 0 || Math.abs(s.prevTimeInColumn[column] - currentTime) > 0.150) {
         return column;
       }
       const newColumn = (column + modifier[randomIndex] + 4) % 4;
@@ -278,44 +281,32 @@ class CreateCircle implements Action {
 
     const newColumn = findColumn(initialColumn, 3);
 
-    const updatedPrevColumnTimes = userPlayed
-    ? s.prevColumnTimes.map((time, index) => index === newColumn ? currentTime : time)
-    : s.prevColumnTimes;
+    const updatedPrevColumnTimes =
+      userPlayed
+        ? s.prevTimeInColumn.map((time, index) => index === newColumn ? currentTime : time)
+        : s.prevTimeInColumn;
 
     return [newColumn, updatedPrevColumnTimes];
   }
 
-  static createSVG = (circle: Circle): CircleLine | undefined => {
-    // if circle isnt user_played circle, dont create svg
-    if (!circle.note.userPlayed) {
+  static createTail = (circle: Circle): CircleLine | undefined => {
+    // if circle isnt user_played circle or isnt a hold note, dont create tail object
+    if (!circle.note.userPlayed || !circle.isHoldNote) {
       return undefined;
     }
 
-    // if circle already exists, dont create svg
-    if (document.getElementById(circle.id)) {
-      return undefined;
+    const tailProps = {
+      id: `tail-${circle.id}`,
+      x1: circle.cx,
+      x2: circle.cx,
+      y1: `-${circle.tailHeight}`,
+      y2: circle.cy,
+      stroke: Constants.COLUMN_COLORS[Constants.COLUMN_PERCENTAGES.indexOf(circle.cx as "20%" | "40%" | "60%" | "80%")],
+      strokeWidth: "15",
+      opacity: "1",
     }
 
-    // if its not a hold note, dont create tail -> return now
-    if (!circle.isHoldNote) {
-      return undefined;
-    }
-
-    // check just in case, if its a hold note then create a tail svg
-    if (circle.isHoldNote && circle.tailHeight) {
-      const tailProps = {
-        id: `tail-${circle.id}`,
-        x1: circle.cx,
-        x2: circle.cx,
-        y1: `-${circle.tailHeight}`,
-        y2: circle.cy,
-        stroke: Constants.COLUMN_COLORS[Constants.COLUMN_PERCENTAGES.indexOf(circle.cx as "20%" | "40%" | "60%" | "80%")],
-        strokeWidth: "15",
-        opacity: "1",
-      }
-
-      return tailProps;
-    }
+    return tailProps;
   }
 }
 
@@ -336,7 +327,7 @@ const initialState: State = {
   nGood: 0,
   nMiss: 0,
   circleCount: 0,
-  prevColumnTimes: [0, 0, 0, 0],
+  prevTimeInColumn: [0, 0, 0, 0],
   multiplier: 1,
   lastNoteEndTime: 0,
 };

@@ -3,8 +3,6 @@ import { SampleLibrary } from "./tonejs-instruments";
 import { Circle, Constants, State } from "./types";
 import { map, Observable, scan } from "rxjs";
 
-export { attr, playNote, not, getAccuracy };
-
 const samples = SampleLibrary.load({
   instruments: SampleLibrary.list,
   baseUrl: "samples/",
@@ -12,8 +10,8 @@ const samples = SampleLibrary.load({
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // taken from asteroids and previous workshops/appliedds
-const attr = (e: Element, o: { [p: string]: unknown }) => { for (const k in o) e.setAttribute(k, String(o[k])) }
-const not = <T>(f: (x: T) => boolean) => (x: T) => !f(x)
+export const attr = (e: Element, o: { [p: string]: unknown }) => { for (const k in o) e.setAttribute(k, String(o[k])) }
+export const not = <T>(f: (x: T) => boolean) => (x: T) => !f(x)
 export abstract class RNG {
   // LCG using GCC's constants
   private static m = 0x80000000; // 2**31
@@ -39,10 +37,11 @@ export function isNotNullOrUndefined<T extends object>(input: null | undefined |
 //////////////////////////////////////////////////////////////////////////////////////////
 
 export const getRandomDuration = (randomNumber: number): number => {
+  // divide by 4 -> [0, 0.25), add 0.25 -> [0.25, 0.5), to avoid 0 duration
   return (randomNumber / 4) + 0.25;
 }
 
-const playNote = (circle: Circle) => {
+export const playNote = (circle: Circle) => {
   const { instrument, pitch, duration, velocity } = circle.note,
         { isHoldNote, audio } = circle,
         normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / Constants.NOTE_VOLUME_NORMALIZER // divide because it is DAMN loud
@@ -82,11 +81,19 @@ export const releaseNote = (circle: Circle) => {
   });
 }
 
-const getAccuracy = (s: State): number => {
+export const getAccuracy = (s: State): number => {
   const { nPerfect: n300, nGreat: n100, nGood: n50, nMiss: nmiss } = s;
   const accuracy = ( (300 * n300) + (100 * n100) + (50 * n50) ) / 
               ( 300 * (n300 + n100 + n50 + nmiss) )
   return accuracy * 100;
+}
+
+export const getNewMutliplier = (s: State): number => {
+  if (s.combo % 10 === 0 && s.combo > 0) {
+    return parseFloat((s.multiplier + 0.2).toFixed(2));
+  }
+
+  return s.multiplier;
 }
 
 

@@ -35,6 +35,9 @@ const Constants = {
   START_Y: "-15",
   PIXELS_PER_TICK: 4,
   NOTE_VOLUME_NORMALIZER: 60,
+  HIT_PERFECT_RANGE_END: 25,
+  HIT_GREAT_RANGE_END: 55,
+  HIT_GOOD_RANGE_END: 90,
   INSTRUMENTS: [
     "bass-electric",
     "bassoon",
@@ -119,7 +122,7 @@ type State = Readonly<{
   nGood: number,
   nMiss: number
   circleCount: number,
-  prevColumnTimes: ReadonlyArray<number>,
+  prevTimeInColumn: ReadonlyArray<number>,
   multiplier: number,
   lastNoteEndTime: number,
 }>
