@@ -30,16 +30,19 @@ export function isNotNullOrUndefined<T extends object>(input: null | undefined |
 }
 //////////////////////////////////////////////////////////////////////////////////////////
 
+/** returns a random number between 0.25 and 0.5 for the random note durations */
 export const getRandomDuration = (randomNumber: number): number => {
   // divide by 4 -> [0, 0.25), add 0.25 -> [0.25, 0.5), to avoid 0 duration
   return (randomNumber / 4) + 0.25;
 }
 
+/** plays audio for circles */
 export const playNote = (circle: Circle) => {
   const { pitch, duration, velocity } = circle.note,
         { isHoldNote, audio } = circle,
         normalizedVelocity = velocity / 127 / Constants.NOTE_VOLUME_NORMALIZER // divide because it is DAMN loud
   
+  // wait for it to load or something
   Tone.ToneAudioBuffer.loaded().then(() => {
     if (!audio) {
       return;
@@ -47,13 +50,14 @@ export const playNote = (circle: Circle) => {
 
     audio.toDestination();
     if (isHoldNote) {
-      // only trigger attack for hold notes so we can trigger release later
+      // only triggerAttack for hold notes so we can trigger release later
       circle.audio.triggerAttack(
         Tone.Frequency(pitch, "midi").toNote(),
         Tone.now(),
         normalizedVelocity
       );
     } else {
+      // triggerAttackRelease for every other note
       audio.triggerAttackRelease(
         Tone.Frequency(pitch, "midi").toNote(), // Convert MIDI note to frequency
         duration, // has to be in seconds
@@ -64,6 +68,7 @@ export const playNote = (circle: Circle) => {
   });
 };
 
+/** stops the audio for hold notes */
 export const releaseNote = (circle: Circle) => {
   const { pitch } = circle.note;
   Tone.ToneAudioBuffer.loaded().then(() => {
@@ -76,14 +81,19 @@ export const releaseNote = (circle: Circle) => {
   });
 }
 
+/** gets the accuracy of the current state */
 export const getAccuracy = (s: State): number => {
   const { nPerfect, nGreat, nGood, nMiss } = s;
+
+  // use formula from osu!
   const accuracy = ( (300 * nPerfect) + (100 * nGreat) + (50 * nGood) ) / 
                    ( 300 * (nPerfect + nGreat + nGood + nMiss) )
-  return accuracy * 100;
+  return accuracy * 100; // multiply by 100 because the formula returns a ratio
 }
 
+/** gets the current state's multiplier based on the combo */
 export const getNewMutliplier = (s: State): number => {
+  // if youve hit 10 in a row, increase multiplier, make sure combo is more than 0 as well
   if (s.combo % 10 === 0 && s.combo > 0) {
     return parseFloat((s.multiplier + 0.2).toFixed(2));
   }
