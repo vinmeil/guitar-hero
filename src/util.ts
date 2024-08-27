@@ -17,12 +17,12 @@ export abstract class RNG {
    * @param seed
    * @returns a hash of the seed
   */
- public static hash = (seed: number) => (RNG.a * seed + RNG.c) % RNG.m;
+  public static hash = (seed: number) => (RNG.a * seed + RNG.c) % RNG.m;
  
  /**
-  * Takes hash value and scales it to the range [-1, 1]
+  * Takes hash value and scales it to the range [0, 1]
  */
-public static scale = (hash: number) => (2 * hash) / (RNG.m - 1) / 2;
+  public static scale = (hash: number) => (2 * hash) / (RNG.m - 1) / 2;
 }
 
 export function isNotNullOrUndefined<T extends object>(input: null | undefined | T): input is T {
@@ -44,10 +44,6 @@ export const playNote = (circle: Circle) => {
   
   // wait for it to load or something
   Tone.ToneAudioBuffer.loaded().then(() => {
-    if (!audio) {
-      return;
-    }
-
     audio.toDestination();
     if (isHoldNote) {
       // only triggerAttack for hold notes so we can trigger release later
@@ -72,12 +68,10 @@ export const playNote = (circle: Circle) => {
 export const releaseNote = (circle: Circle) => {
   const { pitch } = circle.note;
   Tone.ToneAudioBuffer.loaded().then(() => {
-    if (circle.audio) {
-      circle.audio.triggerRelease(
-        Tone.Frequency(pitch, "midi").toNote(),
-        Tone.now()
-      );
-    }
+    circle.audio.triggerRelease(
+      Tone.Frequency(pitch, "midi").toNote(),
+      Tone.now()
+    );
   });
 }
 
