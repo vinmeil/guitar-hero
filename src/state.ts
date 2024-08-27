@@ -7,10 +7,7 @@ export { Tick, CreateCircle, reduceState, initialState, HitCircle, KeyUpHold };
 
 class Tick implements Action {
   constructor(public readonly elapsed: number) { }
-  /** 
-   * @param s old State
-   * @returns new State
-   */
+
   apply(s: State): State {
       const {
         expiredCircles,
@@ -185,6 +182,7 @@ class HitCircle implements Action {
             circleClicked: true,
             note: {
               ...lowestCircle.note,
+              // if misaligned give it random duration
               duration: hitGood ? randomDuration : lowestCircle.note.duration
             }
           };
@@ -245,7 +243,7 @@ class CreateCircle implements Action {
     const newCircle = {
       ...this.circle,
       id: `circle-${s.circleCount}`,
-      cx: `${(column + 1) * 20}%`,
+      cx: Constants.COLUMN_PERCENTAGES[column],
       style: `fill: ${Constants.COLUMN_COLORS[column]}`
     }
 

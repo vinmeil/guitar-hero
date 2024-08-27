@@ -9,7 +9,8 @@ const samples = SampleLibrary.load({
 });
 
 //////////////////////////////////////////////////////////////////////////////////////////
-// taken from asteroids and previous workshops/appliedds
+// taken from asteroids and previous workshops/applieds
+// credit goes to Tim Dwyer and the FIT2102 teaching team
 export const attr = (e: Element, o: { [p: string]: unknown }) => { for (const k in o) e.setAttribute(k, String(o[k])) }
 export const not = <T>(f: (x: T) => boolean) => (x: T) => !f(x)
 export abstract class RNG {
@@ -42,9 +43,9 @@ export const getRandomDuration = (randomNumber: number): number => {
 }
 
 export const playNote = (circle: Circle) => {
-  const { instrument, pitch, duration, velocity } = circle.note,
+  const { pitch, duration, velocity } = circle.note,
         { isHoldNote, audio } = circle,
-        normalizedVelocity = Math.min(Math.max(velocity, 0), 1) / Constants.NOTE_VOLUME_NORMALIZER // divide because it is DAMN loud
+        normalizedVelocity = velocity / 127 / Constants.NOTE_VOLUME_NORMALIZER // divide because it is DAMN loud
   
   Tone.ToneAudioBuffer.loaded().then(() => {
     if (!audio) {
@@ -53,6 +54,7 @@ export const playNote = (circle: Circle) => {
 
     audio.toDestination();
     if (isHoldNote) {
+      // only trigger attack for hold notes so we can trigger release later
       circle.audio.triggerAttack(
         Tone.Frequency(pitch, "midi").toNote(),
         Tone.now(),
@@ -82,9 +84,9 @@ export const releaseNote = (circle: Circle) => {
 }
 
 export const getAccuracy = (s: State): number => {
-  const { nPerfect: n300, nGreat: n100, nGood: n50, nMiss: nmiss } = s;
-  const accuracy = ( (300 * n300) + (100 * n100) + (50 * n50) ) / 
-              ( 300 * (n300 + n100 + n50 + nmiss) )
+  const { nPerfect, nGreat, nGood, nMiss } = s;
+  const accuracy = ( (300 * nPerfect) + (100 * nGreat) + (50 * nGood) ) / 
+                   ( 300 * (nPerfect + nGreat + nGood + nMiss) )
   return accuracy * 100;
 }
 
