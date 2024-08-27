@@ -13,6 +13,7 @@ export { updateView }
 */
 const updateView = (onFinish: () => void) => {
   return function(s: State): void {
+    // get all the HTML elements from the DOM
     const svg = document.querySelector("#svgCanvas") as SVGGraphicsElement & HTMLElement,
           scoreText = document.getElementById("scoreText") as SVGGraphicsElement & HTMLElement,
           comboText = document.getElementById("comboText") as SVGGraphicsElement & HTMLElement,
@@ -20,6 +21,7 @@ const updateView = (onFinish: () => void) => {
           accuracyText = document.getElementById("accuracyText") as SVGGraphicsElement & HTMLElement,
           multiplierText = document.getElementById("multiplierText") as SVGGraphicsElement & HTMLElement;
 
+    // this function updates the views/positions of the circles and the tails on the SVG
     const updateSVGView = (svg: HTMLElement) => (type: "circle" | "line") => (props: Circle | CircleLine) => {
       function createNewSVG() {
         const newSVGObject = document.createElementNS(svg.namespaceURI, type) as SVGElement;
@@ -48,7 +50,7 @@ const updateView = (onFinish: () => void) => {
     accuracyText.textContent = `${accuracy.toFixed(2)}%`;
     multiplierText.textContent = `${s.multiplier}x`;
 
-    // update tails
+    // remove tails that have exited the screen
     s.exitTails
       .map(line => document.getElementById(line.id))
       .filter(isNotNullOrUndefined)
@@ -56,7 +58,7 @@ const updateView = (onFinish: () => void) => {
         svg.removeChild(line);
       })
 
-    // update non hold circles
+    // remove and play audio for circles that have exited the screen
     s.exit
       .map((circle) => {
         // play note if circle is not userPlayed or if circle is clicked 
@@ -64,15 +66,14 @@ const updateView = (onFinish: () => void) => {
           playNote(circle);
         }
 
-        return circle;
+        return document.getElementById(circle.id)
       })
-      .map((circle) => document.getElementById(circle.id))
       .filter(isNotNullOrUndefined)
       .forEach(circle => {
           svg.removeChild(circle);
       })
 
-    // update hold circles
+    // remove hold circles if the tail has reached the end of the duration
     s.holdCircles
       .forEach(circle => {
         // check if the circle is either not being held down or
@@ -86,11 +87,13 @@ const updateView = (onFinish: () => void) => {
         }
       });
 
+    // if game is over -> last note duration has passed, show game over screen
     if (s.gameEnd) {
       const gameOver = document.getElementById("gameOver");
       if (gameOver) {
         attr(gameOver, { visibility: "visible" });
       }
+      
       onFinish();
     }
   }

@@ -63,15 +63,23 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     
     // turn everything to objects so its easier to process
     const notes: NoteType[] = values.map((line) => {
-      const splitLine = line.split(",");
+      const splitLine = line.split(","),
+            userPlayed = splitLine[0],
+            instrument = splitLine[1],
+            velocity = Number(splitLine[2]),
+            pitch = Number(splitLine[3]),
+            start = Number(splitLine[4]),
+            end = Number(splitLine[5]),
+            duration = end - start;
+
       return {
-        userPlayed: splitLine[0].toLowerCase() === "true",
-        instrument: splitLine[1],
-        velocity: Number(splitLine[2]),
-        pitch: Number(splitLine[3]),
-        start: Number(splitLine[4]),
-        end: Number(splitLine[5]),
-        duration: Number(splitLine[5]) - Number(splitLine[4]),
+        userPlayed: userPlayed.toLowerCase() === "true",
+        instrument,
+        velocity,
+        pitch,
+        start,
+        end,
+        duration,
       } as const
     })
     

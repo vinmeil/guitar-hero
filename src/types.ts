@@ -11,7 +11,7 @@ const Viewport = {
 const Constants = {
   TICK_RATE_MS: 6,
   // SONG_NAME: "RockinRobin",
-  // SONG_NAME: "ComparedChild",
+  SONG_NAME: "ComparedChild",
   // SONG_NAME: "ComparedChildNoBG",
   // SONG_NAME: "BusToAnotherWorld",
   // SONG_NAME: "UnderKids",
@@ -19,7 +19,7 @@ const Constants = {
   // SONG_NAME: "LowAsDirt",
   // SONG_NAME: "TestHold",
   // SONG_NAME: "DifficultMode",
-  SONG_NAME: "TrappedInThePast",
+  // SONG_NAME: "TrappedInThePast",
   // SONG_NAME: "MouIiKai",
   // SONG_NAME: "ThroughTheFireAndTheFlames_easy",
   // SONG_NAME: "ThroughTheFireAndTheFlames_hard",
