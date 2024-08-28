@@ -29,10 +29,14 @@ const samples = SampleLibrary.load({
   ], // SampleLibrary.list,
   baseUrl: "samples/",
 });
+
+/** Class represents a game tick, where every 6ms we create a new game tick to update the state of the game (similar to refresh rate) */
 class Tick implements Action {
   constructor(public readonly elapsed: number) { }
 
   apply(s: State): State {
+
+      // filter all our props that have gone out of bounds
       const {
           expiredCircles, expiredBgCircles, updatedCircleProps, updatedBgCircleProps,
           updatedTailProps, expiredTails, missed, updatedHoldCircles
@@ -60,6 +64,7 @@ class Tick implements Action {
       };
   }
 
+  /** Filters all the circles and tails and returns the newly filtered arrays */
   static filterEverything = ({
     circleProps,
     tailProps,
@@ -88,6 +93,7 @@ class Tick implements Action {
     };
   }
 
+  /** Moves the circles by increasing their y coordinate */
   static moveCircle = (circle: Circle): Circle => {
     return {
       ...circle,
@@ -95,6 +101,7 @@ class Tick implements Action {
     }
   }
 
+  /** Moves the tails by increasing their y1 and y2 coordinates */
   static moveTail = (tail: CircleLine): CircleLine => {
     return {
       ...tail,
@@ -104,6 +111,7 @@ class Tick implements Action {
   }
 }
 
+/** Class that handles key-ups during hold notes */
 class KeyUpHold implements Action {
   constructor(public readonly key: "KeyA" | "KeyS" | "KeyK" | "KeyL") { }
 
@@ -111,8 +119,8 @@ class KeyUpHold implements Action {
     const col = Constants.COLUMN_KEYS.indexOf(this.key);
     const colPercentage = Constants.COLUMN_PERCENTAGES[col];
 
-    // this should always return an array of 1 or 0 elements since there can only be 1 clickable hold circle
-    // in 1 column at one singular time
+    // this should always return an array of 1 or 0 elements since there can only
+    // be 1 clickable hold circle in 1 column at one singular time
     const clickedHoldCirclesInColumn =
       s.holdCircles.filter(circle => 
         circle.cx === colPercentage &&
@@ -143,6 +151,10 @@ class KeyUpHold implements Action {
     };
   }
 }
+
+/** Class handles whenever the user keydowns, for both if theres a circle in the column
+ * and if there isn't a circle in the column (plays a random note)
+ */
 class HitCircle implements Action {
   constructor(public readonly key: "KeyA" | "KeyS" | "KeyK" | "KeyL") { }
 
@@ -177,6 +189,7 @@ class HitCircle implements Action {
     const lowestCircle = playableCirclesInColumn
       .reduce((acc, cur) => (Number(cur.cy) > Number(acc.cy) ? cur : acc), playableCirclesInColumn[0]);
 
+    // update arrays and props
     const circleCy = Number(lowestCircle.cy),
           circleMarginFromCenter = Math.abs(Constants.HITCIRCLE_CENTER - circleCy),
           hitPerfect =
@@ -216,6 +229,7 @@ class HitCircle implements Action {
     };
   }
  
+  /** Creates a circle which has a note that has a random instrument and random duration */
   static createRandomNoteCircle = (s: State): [Circle, number] => {
     console.log("got here")
     const randomNumber = RNG.hash(s.randomNumber),
@@ -227,7 +241,7 @@ class HitCircle implements Action {
             r: `${0.07 * Viewport.CANVAS_WIDTH}`,
             cx: `0%`,
             cy: Constants.HITCIRCLE_CENTER.toString(),
-            style: `fill: green`,
+            style: `fill: green`, // this doesnt matter since it goes straight to exit (doesnt get displayed)
             class: "circle",
             note: {
               userPlayed: false,
@@ -243,11 +257,11 @@ class HitCircle implements Action {
             audio: samples[Constants.INSTRUMENTS[randomInstrumentIndex]],
           } as Circle;
 
-
     return [newCircle, randomNumber];
   }
 }
 
+/** Class is called whenever we want to take a circle from our stream and insert it into our state */
 class CreateCircle implements Action {
   constructor(public readonly circle: Circle) { }
 
@@ -258,15 +272,16 @@ class CreateCircle implements Action {
   apply(s: State): State {
     const [column, updatedPrevTimeInColumn] = getColumn(this.circle, s);
 
-    const newCircle = {
+    // update circle props after getting the proper column
+    const newCircle: Circle = {
       ...this.circle,
       id: `circle-${s.circleCount}`,
       cx: Constants.COLUMN_PERCENTAGES[column],
       style: `fill: ${Constants.COLUMN_COLORS[column]}`
     }
 
-    const tail = CreateCircle.createTail(newCircle);
-    const isUserPlayed = newCircle.note.userPlayed;
+    const tail: CircleLine | undefined = CreateCircle.createTail(newCircle); // if its not a hold note we return undefined
+    const isUserPlayed: boolean = newCircle.note.userPlayed;
 
     return {
       ...s,
@@ -279,13 +294,14 @@ class CreateCircle implements Action {
     };
   }
 
+  /** Creates the tail for hold notes */
   static createTail = (circle: Circle): CircleLine | undefined => {
     // if circle isnt user_played circle or isnt a hold note, dont create tail object
     if (!circle.note.userPlayed || !circle.isHoldNote) {
       return undefined;
     }
 
-    const tailProps = {
+    const tailProps: CircleLine = {
       id: `tail-${circle.id}`,
       x1: circle.cx,
       x2: circle.cx,
