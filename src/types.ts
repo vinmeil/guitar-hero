@@ -17,7 +17,6 @@ const Constants = {
     "UnderKids",
     "RainingAfterAll",
     "LowAsDirt",
-    "TestHold",
     "DifficultMode",
     "TrappedInThePast",
     "MouIiKai",

@@ -41,7 +41,10 @@ const updateView = (onFinish: () => void) => {
     // update all texts on screen
     const comboDigits = s.combo.toString().length - 1;
     attr(comboText, { x: `${96 - (6 * comboDigits)}`})
+    
     const accuracy = getAccuracy(s);
+    const accuracyDigits = accuracy.toFixed(2).length - 1;
+    attr(accuracyText, { x: `${77 + (4 * (5 - accuracyDigits))}`})
 
     scoreText.textContent = `${s.score}`;
     comboText.textContent = `${s.combo}`;
