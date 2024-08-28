@@ -95,7 +95,7 @@ export function main(samples: { [key: string]: Tone.Sampler }) {
       // simulate react's useEffect() here i guess
       filter(songName => songName !== ""), // only start the game when a song is selected
       mergeMap(songName => from(fetchCsvContents(songName as string))),
-    ).subscribe(songName => playGame(songName));
+    ).subscribe(csvContents => playGame(csvContents));
 
     /** main logic of the game, contains streams and how we handle the streams and its contents */
     const playGame = (csvContents: string) => {
