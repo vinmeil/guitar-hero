@@ -5,7 +5,8 @@
     </head>
     <body>
         <h1>Guitar Hero</h1>
-        <main id="main" class="flex row">
+        <div class="flex row">
+          <main id="main" class="flex row">
             <svg id="svgCanvas" viewBox="0 0 200 400">
               <g>
                 <text x="81" y="75" font-size="12">Combo</text>
@@ -194,7 +195,12 @@
                     </div>
                 </div>
             </div>
-        </main>
+          </main>
+          <div class="flex col">
+            <p id="song-select-text">Pick a song</p>
+            <div id="song-select"></div>
+          </div>
+        </div>
         <script type="module" src="./src/main.ts"></script>
     </body>
 </html>

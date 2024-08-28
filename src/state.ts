@@ -231,7 +231,6 @@ class HitCircle implements Action {
  
   /** Creates a circle which has a note that has a random instrument and random duration */
   static createRandomNoteCircle = (s: State): [Circle, number] => {
-    console.log("got here")
     const randomNumber = RNG.hash(s.randomNumber),
           scaledRandomNumber = RNG.scale(randomNumber),
           randomInstrumentIndex = Math.floor(scaledRandomNumber * Constants.INSTRUMENTS.length),

@@ -79,7 +79,7 @@ export const releaseNote = (circle: Circle) => {
 export const getAccuracy = (s: State): number => {
   const { nPerfect, nGreat, nGood, nMiss } = s;
 
-  // use formula from osu!
+  // formula from osu!
   const accuracy = ( (300 * nPerfect) + (100 * nGreat) + (50 * nGood) ) / 
                    ( 300 * (nPerfect + nGreat + nGood + nMiss) )
   return accuracy * 100; // multiply by 100 because the formula returns a ratio
@@ -135,7 +135,8 @@ export const getColumn = (circle: Circle, s: State): [number, readonly number[]]
   return [newColumn, updatedPrevColumnTimes];
 }
 
-export const processCsv = (values: string[]): NoteType[] => {
+/** processes csv lines into note objects */
+export const processCsv = (values: ReadonlyArray<string>): NoteType[] => {
   const notes = values.map((line) => {
     const splitLine = line.split(","),
           userPlayed = splitLine[0],
@@ -160,5 +161,17 @@ export const processCsv = (values: string[]): NoteType[] => {
   return notes;
 }
 
+/** renders the song list based on csv */
+export const renderSongs = (songNames: readonly string[]): void => {
+  const container = document.getElementById('song-select') as SVGGraphicsElement & HTMLElement;
+
+  songNames.forEach(song => {
+    const songElement = document.createElement('div');
+    songElement.className = 'song';
+    songElement.textContent = song;
+    songElement.id = song;
+    container.appendChild(songElement);
+  });
+}
 
 
