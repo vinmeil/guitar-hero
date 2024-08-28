@@ -60,9 +60,9 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     const tick$ = interval(Constants.TICK_RATE_MS);
     const timeFromTopToBottom = (Viewport.CANVAS_HEIGHT / Constants.PIXELS_PER_TICK * Constants.TICK_RATE_MS)
     
-    const values: string[] = csvContents.split("\n").slice(1).filter(Boolean); // remove first line and empty lines
-    const notes: NoteType[] = processCsv(values); // turn everything to objects so its easier to process
-    const seed = Date.now(); // get seed for RNG (impure but its outside of stream so its ok)
+    const values: ReadonlyArray<string> = csvContents.split("\n").slice(1).filter(Boolean); // remove first line and empty lines
+    const notes: ReadonlyArray<NoteType> = processCsv(values); // turn everything to objects so its easier to process
+    const seed: number = Date.now(); // get seed for RNG (impure but its outside of stream so its ok)
     
     const newInitialState: State = {
       ...initialState,
@@ -100,6 +100,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
       }),
     )
 
+    // merge all actions so we can do some cool OOP polymorphism stuff with the reduceState
     const action$ = merge(
       gameClock$,
       colOneKeyDown$,
@@ -119,65 +120,63 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     );
 
     const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe()));
-    
+}
 
-    }
+  // The following simply runs your main function on window load.  Make sure to leave it in place.
+  // You should not need to change this, beware if you are.
+  if (typeof window !== "undefined") {
+    // Load in the instruments and then start your game!
+  const samples = SampleLibrary.load({
+      instruments: [
+          "bass-electric",
+          "bassoon",
+          "cello",
+          "clarinet",
+          "contrabass",
+          "flute",
+          "french-horn",
+          "guitar-acoustic",
+          "guitar-electric",
+          "guitar-nylon",
+          "harmonium",
+          "harp",
+          "organ",
+          "piano",
+          "saxophone",
+          "trombone",
+          "trumpet",
+          "tuba",
+          "violin",
+          "xylophone",
+      ], // SampleLibrary.list,
+      baseUrl: "samples/",
+  });
 
-    // The following simply runs your main function on window load.  Make sure to leave it in place.
-    // You should not need to change this, beware if you are.
-    if (typeof window !== "undefined") {
-      // Load in the instruments and then start your game!
-    const samples = SampleLibrary.load({
-        instruments: [
-            "bass-electric",
-            "bassoon",
-            "cello",
-            "clarinet",
-            "contrabass",
-            "flute",
-            "french-horn",
-            "guitar-acoustic",
-            "guitar-electric",
-            "guitar-nylon",
-            "harmonium",
-            "harp",
-            "organ",
-            "piano",
-            "saxophone",
-            "trombone",
-            "trumpet",
-            "tuba",
-            "violin",
-            "xylophone",
-        ], // SampleLibrary.list,
-        baseUrl: "samples/",
-    });
+  const startGame = (contents: string) => {
+      renderSongs([...Constants.SONG_LIST]);
+      document.body.addEventListener(
+          "mousedown",
+          function () {
+              main(contents, samples);
+          },
+          { once: true },
+      );
+  };
 
-    const startGame = (contents: string) => {
-        renderSongs([...Constants.SONG_LIST]);
-        document.body.addEventListener(
-            "mousedown",
-            function () {
-                main(contents, samples);
-            },
-            { once: true },
-        );
-    };
+  const { protocol, hostname, port } = new URL(import.meta.url);
+  const baseUrl = `${protocol}//${hostname}${port ? `:${port}` : ""}`;
 
-    const { protocol, hostname, port } = new URL(import.meta.url);
-    const baseUrl = `${protocol}//${hostname}${port ? `:${port}` : ""}`;
+  Tone.ToneAudioBuffer.loaded().then(() => {
+      for (const instrument in samples) {
+          samples[instrument].toDestination();
+          samples[instrument].release = 0.5;
+      }
 
-    Tone.ToneAudioBuffer.loaded().then(() => {
-        for (const instrument in samples) {
-            samples[instrument].toDestination();
-            samples[instrument].release = 0.5;
-        }
-
-        fetch(`${baseUrl}/assets/${Constants.SONG_NAME}.csv`)
-            .then((response) => response.text())
-            .then((text) => startGame(text))
-            .catch((error) =>
-                console.error("Error fetching the CSV file:", error),
-            );
-    });
+      fetch(`${baseUrl}/assets/${Constants.SONG_NAME}.csv`)
+          .then((response) => response.text())
+          .then((text) => startGame(text))
+          .catch((error) =>
+              console.error("Error fetching the CSV file:", error),
+          );
+  });
 }
