@@ -1,8 +1,34 @@
+import { SampleLibrary } from "./tonejs-instruments";
 import { Action, Circle, CircleLine, Constants, filterEverythingParams, State, Viewport } from "./types";
 import { circleOutOfBounds, getColumn, getNewMutliplier, getRandomDuration, not, RNG, tailOutOfBounds } from "./util";
 
 export { Tick, CreateCircle, reduceState, initialState, HitCircle, KeyUpHold };
 
+const samples = SampleLibrary.load({
+  instruments: [
+      "bass-electric",
+      "bassoon",
+      "cello",
+      "clarinet",
+      "contrabass",
+      "flute",
+      "french-horn",
+      "guitar-acoustic",
+      "guitar-electric",
+      "guitar-nylon",
+      "harmonium",
+      "harp",
+      "organ",
+      "piano",
+      "saxophone",
+      "trombone",
+      "trumpet",
+      "tuba",
+      "violin",
+      "xylophone",
+  ], // SampleLibrary.list,
+  baseUrl: "samples/",
+});
 class Tick implements Action {
   constructor(public readonly elapsed: number) { }
 
@@ -191,6 +217,7 @@ class HitCircle implements Action {
   }
  
   static createRandomNoteCircle = (s: State): [Circle, number] => {
+    console.log("got here")
     const randomNumber = RNG.hash(s.randomNumber),
           scaledRandomNumber = RNG.scale(randomNumber),
           randomInstrumentIndex = Math.floor(scaledRandomNumber * Constants.INSTRUMENTS.length),
@@ -205,7 +232,7 @@ class HitCircle implements Action {
             note: {
               userPlayed: false,
               instrument: Constants.INSTRUMENTS[randomInstrumentIndex],
-              velocity: scaledRandomNumber / 127 / Constants.NOTE_VOLUME_NORMALIZER,
+              velocity: scaledRandomNumber * 127,
               pitch: Math.floor(scaledRandomNumber * 100),
               start: s.time,
               end: s.time + randomDuration,
@@ -213,6 +240,7 @@ class HitCircle implements Action {
             },
             circleClicked: true,
             isHoldNote: false,
+            audio: samples[Constants.INSTRUMENTS[randomInstrumentIndex]],
           } as Circle;
 
 
