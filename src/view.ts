@@ -53,9 +53,7 @@ const updateView = (onFinish: () => void) => {
     s.exitTails
       .map(line => document.getElementById(line.id))
       .filter(isNotNullOrUndefined)
-      .forEach(line => {
-        svg.removeChild(line);
-      })
+      .forEach(line => svg.removeChild(line))
 
     // remove and play audio for circles that have exited the screen
     s.exit
@@ -68,9 +66,7 @@ const updateView = (onFinish: () => void) => {
         return document.getElementById(circle.id)
       })
       .filter(isNotNullOrUndefined)
-      .forEach(circle => {
-          svg.removeChild(circle);
-      })
+      .forEach(circle => svg.removeChild(circle))
 
     // remove hold circles if the tail has reached the end of the duration
     s.holdCircles

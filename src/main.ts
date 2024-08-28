@@ -21,6 +21,7 @@ import { SampleLibrary } from "./tonejs-instruments";
 import { CreateCircle, initialState, HitCircle, reduceState, Tick, KeyUpHold } from "./state";
 import { Constants, NoteType, State, Viewport } from "./types";
 import { updateView } from "./view";
+import { processCsv } from "./util";
 
 /** Constants */
 
@@ -57,32 +58,13 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
 
     /** Determines the rate of time steps */
     const tick$ = interval(Constants.TICK_RATE_MS);
+    const timeFromTopToBottom = (Viewport.CANVAS_HEIGHT / Constants.PIXELS_PER_TICK * Constants.TICK_RATE_MS)
     
     // process csv
     const values: string[] = csvContents.split("\n").slice(1).filter(Boolean);
     
     // turn everything to objects so its easier to process
-    const timeFromTopToBottom = (Viewport.CANVAS_HEIGHT / Constants.PIXELS_PER_TICK * Constants.TICK_RATE_MS)
-    const notes: NoteType[] = values.map((line) => {
-      const splitLine = line.split(","),
-            userPlayed = splitLine[0],
-            instrument = splitLine[1],
-            velocity = Number(splitLine[2]),
-            pitch = Number(splitLine[3]),
-            start = Number(splitLine[4]),
-            end = Number(splitLine[5]),
-            duration = end - start;
-
-      return {
-        userPlayed: userPlayed.toLowerCase() === "true",
-        instrument,
-        velocity,
-        pitch,
-        start,
-        end,
-        duration,
-      } as const
-    })
+    const notes: NoteType[] = processCsv(values);
     
     const newInitialState: State = {
       ...initialState,

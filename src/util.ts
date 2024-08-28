@@ -1,5 +1,5 @@
 import * as Tone from "tone";
-import { Circle, CircleLine, Constants, State } from "./types";
+import { Circle, CircleLine, Constants, NoteType, State } from "./types";
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // taken from asteroids and previous workshops/applieds
@@ -47,7 +47,7 @@ export const playNote = (circle: Circle) => {
     audio.toDestination();
     if (isHoldNote) {
       // only triggerAttack for hold notes so we can trigger release later
-      circle.audio.triggerAttack(
+      audio.triggerAttack(
         Tone.Frequency(pitch, "midi").toNote(),
         Tone.now(),
         normalizedVelocity
@@ -134,5 +134,31 @@ export const getColumn = (circle: Circle, s: State): [number, readonly number[]]
 
   return [newColumn, updatedPrevColumnTimes];
 }
+
+export const processCsv = (values: string[]): NoteType[] => {
+  const notes = values.map((line) => {
+    const splitLine = line.split(","),
+          userPlayed = splitLine[0],
+          instrument = splitLine[1],
+          velocity = Number(splitLine[2]),
+          pitch = Number(splitLine[3]),
+          start = Number(splitLine[4]),
+          end = Number(splitLine[5]),
+          duration = end - start;
+
+    return {
+      userPlayed: userPlayed.toLowerCase() === "true",
+      instrument,
+      velocity,
+      pitch,
+      start,
+      end,
+      duration,
+    } as const;
+  })
+
+  return notes;
+}
+
 
 
