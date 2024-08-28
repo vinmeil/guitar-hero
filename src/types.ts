@@ -11,9 +11,9 @@ const Viewport = {
 const Constants = {
   TICK_RATE_MS: 6,
   // SONG_NAME: "RockinRobin",
-  SONG_NAME: "ComparedChild",
+  // SONG_NAME: "ComparedChild",
   // SONG_NAME: "ComparedChildNoBG",
-  // SONG_NAME: "BusToAnotherWorld",
+  SONG_NAME: "BusToAnotherWorld",
   // SONG_NAME: "UnderKids",
   // SONG_NAME: "RainingAfterAll",
   // SONG_NAME: "LowAsDirt",
@@ -26,6 +26,24 @@ const Constants = {
   // SONG_NAME: "FreedomDive",
   // SONG_NAME: "HungarianDanceNo5",
   // SONG_NAME: "SleepingBeauty",
+  SONG_LIST: [
+    "RockinRobin",
+    "ComparedChild",
+    "ComparedChildNoBG",
+    "BusToAnotherWorld",
+    "UnderKids",
+    "RainingAfterAll",
+    "LowAsDirt",
+    "TestHold",
+    "DifficultMode",
+    "TrappedInThePast",
+    "MouIiKai",
+    "ThroughTheFireAndTheFlames_easy",
+    "ThroughTheFireAndTheFlames_hard",
+    "FreedomDive",
+    "HungarianDanceNo5",
+    "SleepingBeauty",
+  ],
   COLUMN_KEYS: ["KeyA", "KeyS", "KeyK", "KeyL"],
   COLUMN_COLORS: ["green", "red", "blue", "yellow"],
   COLUMN_PERCENTAGES: ["20%", "40%", "60%", "80%"],
@@ -34,7 +52,7 @@ const Constants = {
   USERPLAYED_CIRCLE_VISIBLE_EXTRA: 40,
   START_Y: "-15",
   PIXELS_PER_TICK: 4,
-  NOTE_VOLUME_NORMALIZER: 70,
+  NOTE_VOLUME_NORMALIZER: 10,
   HIT_PERFECT_RANGE_END: 25,
   HIT_GREAT_RANGE_END: 55,
   HIT_GOOD_RANGE_END: 90,
@@ -62,7 +80,7 @@ const Constants = {
 ],
 } as const;
 
-
+/** Type for notes read from CSV */
 type NoteType = Readonly<{
   userPlayed: boolean,
   instrument: string,
@@ -73,9 +91,7 @@ type NoteType = Readonly<{
   duration: number,
 }>
 
-/**
- * Circle type
- */
+/** Circle type */
 type Circle = Readonly<{
   id: string,
   r: string,
@@ -91,6 +107,7 @@ type Circle = Readonly<{
   audio: Tone.Sampler
 }>
 
+/** Type for tail/hold notes */
 type CircleLine = Readonly<{
   id: string,
   x1: string,
@@ -102,9 +119,7 @@ type CircleLine = Readonly<{
   opacity: string,
 }>
 
-/**
- * Game state
- */
+/** Game state */
 type State = Readonly<{
   time: number,
   circleProps: ReadonlyArray<Circle>,
@@ -125,18 +140,13 @@ type State = Readonly<{
   prevTimeInColumn: ReadonlyArray<number>,
   multiplier: number,
   lastNoteEndTime: number,
+  randomNumber: number,
 }>
 interface Action {
   apply(s: State): State;
 }
 
-export type moveEverythingParams = {
-  circleProps: Circle[],
-  tailProps: CircleLine[],
-  holdCircles: Circle[],
-  bgCircleProps: Circle[]
-}
-
+/** Type for the filterEverything method in the Tick class */
 export type filterEverythingParams = {
   circleProps: Circle[],
   tailProps: CircleLine[],
