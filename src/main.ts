@@ -21,7 +21,7 @@ import { SampleLibrary } from "./tonejs-instruments";
 import { CreateCircle, initialState, HitCircle, reduceState, Tick, KeyUpHold } from "./state";
 import { Constants, NoteType, State, Viewport } from "./types";
 import { updateView } from "./view";
-import { processCsv } from "./util";
+import { processCsv, renderSongs } from "./util";
 
 /** Constants */
 
@@ -60,15 +60,14 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     const tick$ = interval(Constants.TICK_RATE_MS);
     const timeFromTopToBottom = (Viewport.CANVAS_HEIGHT / Constants.PIXELS_PER_TICK * Constants.TICK_RATE_MS)
     
-    // process csv
-    const values: string[] = csvContents.split("\n").slice(1).filter(Boolean);
-    
-    // turn everything to objects so its easier to process
-    const notes: NoteType[] = processCsv(values);
+    const values: string[] = csvContents.split("\n").slice(1).filter(Boolean); // remove first line and empty lines
+    const notes: NoteType[] = processCsv(values); // turn everything to objects so its easier to process
+    const seed = Date.now(); // get seed for RNG (impure but its outside of stream so its ok)
     
     const newInitialState: State = {
       ...initialState,
       lastNoteEndTime: (Math.max(...notes.map(note => note.end)) * 1000) + timeFromTopToBottom, // convert to ms then add by time it takes to travel from top to bottom of canvas
+      randomNumber: seed,
     };
 
     // streams
@@ -155,6 +154,7 @@ export function main(csvContents: string, samples: { [key: string]: Tone.Sampler
     });
 
     const startGame = (contents: string) => {
+        renderSongs([...Constants.SONG_LIST]);
         document.body.addEventListener(
             "mousedown",
             function () {

@@ -139,10 +139,11 @@ class HitCircle implements Action {
 
     // if user misclicks, add a circle that plays a random instrument for random duration in exit
     if (playableCirclesInColumn.length === 0) {
-      const newCircle = HitCircle.createRandomNoteCircle(s);
+      const [newCircle, randomNumber] = HitCircle.createRandomNoteCircle(s);
       return {
         ...s,
         exit: s.exit.concat(newCircle),
+        randomNumber: randomNumber,
       };
     }
 
@@ -162,7 +163,8 @@ class HitCircle implements Action {
             circleMarginFromCenter <= Constants.HIT_GOOD_RANGE_END,
           updatedCircleProps = s.circleProps.filter(circle => circle.id !== lowestCircle.id),
           filteredHoldCircles = s.holdCircles.filter(circle => circle.id !== lowestCircle.id),
-          randomDuration = getRandomDuration(RNG.scale(RNG.hash(s.circleCount))),
+          randomNumber = RNG.hash(s.randomNumber),
+          randomDuration = getRandomDuration(RNG.scale(randomNumber)),
           newCircle = { 
             ...lowestCircle,
             circleClicked: true,
@@ -184,13 +186,15 @@ class HitCircle implements Action {
       nPerfect: hitPerfect ? s.nPerfect + 1 : s.nPerfect,
       nGreat: hitGreat ? s.nGreat + 1 : s.nGreat,
       nGood: hitGood ? s.nGood + 1 : s.nGood,
+      randomNumber: randomNumber,
     };
   }
  
-  static createRandomNoteCircle = (s: State): Circle => {
-    const randomNumber = RNG.scale(RNG.hash(s.circleCount)),
-          randomInstrumentIndex = Math.floor(randomNumber * Constants.INSTRUMENTS.length),
-          randomDuration = getRandomDuration(randomNumber) ,
+  static createRandomNoteCircle = (s: State): [Circle, number] => {
+    const randomNumber = RNG.hash(s.randomNumber),
+          scaledRandomNumber = RNG.scale(randomNumber),
+          randomInstrumentIndex = Math.floor(scaledRandomNumber * Constants.INSTRUMENTS.length),
+          randomDuration = getRandomDuration(scaledRandomNumber),
           newCircle = {
             id: `circle-${s.circleCount}`,
             r: `${0.07 * Viewport.CANVAS_WIDTH}`,
@@ -201,8 +205,8 @@ class HitCircle implements Action {
             note: {
               userPlayed: false,
               instrument: Constants.INSTRUMENTS[randomInstrumentIndex],
-              velocity: Math.random(),
-              pitch: Math.floor(Math.random() * 127),
+              velocity: scaledRandomNumber / 127 / Constants.NOTE_VOLUME_NORMALIZER,
+              pitch: Math.floor(scaledRandomNumber * 100),
               start: s.time,
               end: s.time + randomDuration,
               duration: randomDuration,
@@ -212,7 +216,7 @@ class HitCircle implements Action {
           } as Circle;
 
 
-    return newCircle;
+    return [newCircle, randomNumber];
   }
 }
 
@@ -288,6 +292,7 @@ const initialState: State = {
   prevTimeInColumn: [0, 0, 0, 0],
   multiplier: 1,
   lastNoteEndTime: 0,
+  randomNumber: 0,
 };
 
 /**
