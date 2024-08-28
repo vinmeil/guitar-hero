@@ -86,22 +86,21 @@ export function main(samples: { [key: string]: Tone.Sampler }) {
       return res.text();
     }
 
-    /** Determines the rate of time steps */
-    const tick$ = interval(Constants.TICK_RATE_MS);
-    const timeFromTopToBottom = (Viewport.CANVAS_HEIGHT / Constants.PIXELS_PER_TICK * Constants.TICK_RATE_MS)
-
     // subscribe to songName$ so we can start the game when a song is selected
     songName$.pipe(
-      // simulate react's useEffect() here i guess
+      // this simulates react's useEffect() kind of i guess where it waits for songName$ to change
       filter(songName => songName !== ""), // only start the game when a song is selected
-      mergeMap(songName => from(fetchCsvContents(songName as string))),
+      mergeMap<string, Observable<string>>(songName => from(fetchCsvContents(songName))),
     ).subscribe(csvContents => playGame(csvContents));
 
     /** main logic of the game, contains streams and how we handle the streams and its contents */
     const playGame = (csvContents: string) => {
-        const values: ReadonlyArray<string> = csvContents.split("\n").slice(1).filter(Boolean); // remove first line and empty lines
-        const notes: ReadonlyArray<NoteType> = processCsv(values); // turn everything to objects so its easier to process
-        const seed: number = Date.now(); // get seed for RNG (impure but its outside of stream so its ok)
+        /** Determines the rate of time steps */
+        const tick$ = interval(Constants.TICK_RATE_MS),
+              timeFromTopToBottom = (Viewport.CANVAS_HEIGHT / Constants.PIXELS_PER_TICK * Constants.TICK_RATE_MS),
+              values: ReadonlyArray<string> = csvContents.split("\n").slice(1).filter(Boolean), // remove first line and empty lines
+              notes: ReadonlyArray<NoteType> = processCsv(values), // turn everything to objects so its easier to process
+              seed: number = Date.now(); // get seed for RNG (impure but its outside of stream so its ok)
         
         const newInitialState: State = {
           ...initialState,

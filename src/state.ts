@@ -235,7 +235,7 @@ class HitCircle implements Action {
           scaledRandomNumber = RNG.scale(randomNumber),
           randomInstrumentIndex = Math.floor(scaledRandomNumber * Constants.INSTRUMENTS.length),
           randomDuration = getRandomDuration(scaledRandomNumber),
-          newCircle = {
+          newCircle: Circle = {
             id: `circle-${s.circleCount}`,
             r: `${0.07 * Viewport.CANVAS_WIDTH}`,
             cx: `0%`,
@@ -254,7 +254,7 @@ class HitCircle implements Action {
             circleClicked: true,
             isHoldNote: false,
             audio: samples[Constants.INSTRUMENTS[randomInstrumentIndex]],
-          } as Circle;
+          };
 
     return [newCircle, randomNumber];
   }
