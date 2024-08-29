@@ -59,7 +59,7 @@ class Tick implements Action {
       updatedBgCircleProps,
       updatedTailProps,
       expiredTails,
-      missed,
+      missedCircles,
       updatedHoldCircles,
     } = Tick.filterEverything({
       circleProps: [...s.circleProps],
@@ -74,13 +74,13 @@ class Tick implements Action {
       bgCircleProps: updatedBgCircleProps.map(Tick.moveCircle),
       tailProps: updatedTailProps.map(Tick.moveTail),
       holdCircles: updatedHoldCircles.map(Tick.moveCircle),
-      combo: missed ? 0 : s.combo,
-      multiplier: missed ? 1 : s.multiplier,
+      combo: missedCircles.length > 0 ? 0 : s.combo,
+      multiplier: missedCircles.length > 0 ? 1 : s.multiplier,
       highestCombo: Math.max(s.combo, s.highestCombo),
       exit: expiredCircles.concat(expiredBgCircles),
       exitTails: expiredTails,
       time: this.elapsed * Constants.TICK_RATE_MS,
-      nMiss: missed ? s.nMiss + 1 : s.nMiss,
+      nMiss: s.nMiss + missedCircles.length,
       gameEnd: this.elapsed * Constants.TICK_RATE_MS > s.lastNoteEndTime,
     };
   }
@@ -100,7 +100,7 @@ class Tick implements Action {
       updatedBgCircleProps = bgCircleProps.filter(not(circleOutOfBounds)),
       updatedTailProps = tailProps.filter(not(tailOutOfBounds)),
       expiredTails = tailProps.filter(tailOutOfBounds),
-      missed = expiredCircles.find(
+      missedCircles = expiredCircles.filter(
         (circle) => !circle.circleClicked && circle.note.userPlayed,
       );
 
@@ -122,7 +122,7 @@ class Tick implements Action {
       updatedBgCircleProps,
       updatedTailProps,
       expiredTails,
-      missed,
+      missedCircles,
       updatedHoldCircles,
     };
   };
