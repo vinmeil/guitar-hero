@@ -4,28 +4,35 @@ import { Circle, CircleLine, Constants, NoteType, State } from "./types";
 //////////////////////////////////////////////////////////////////////////////////////////
 // taken from asteroids and previous workshops/applieds
 // credit goes to Tim Dwyer and the FIT2102 teaching team
-export const attr = (e: Element, o: { [p: string]: unknown }) => { for (const k in o) e.setAttribute(k, String(o[k])) }
-export const not = <T>(f: (x: T) => boolean) => (x: T) => !f(x)
+export const attr = (e: Element, o: { [p: string]: unknown }) => {
+  for (const k in o) e.setAttribute(k, String(o[k]));
+};
+export const not =
+  <T>(f: (x: T) => boolean) =>
+  (x: T) =>
+    !f(x);
 export abstract class RNG {
   // LCG using GCC's constants
   private static m = 0x80000000; // 2**31
   private static a = 1103515245;
   private static c = 12345;
-  
+
   /**
    * Call `hash` repeatedly to generate the sequence of hashes.
    * @param seed
    * @returns a hash of the seed
-  */
+   */
   public static hash = (seed: number) => (RNG.a * seed + RNG.c) % RNG.m;
- 
- /**
-  * Takes hash value and scales it to the range [0, 1]
- */
+
+  /**
+   * Takes hash value and scales it to the range [0, 1]
+   */
   public static scale = (hash: number) => (2 * hash) / (RNG.m - 1) / 2;
 }
 
-export function isNotNullOrUndefined<T extends object>(input: null | undefined | T): input is T {
+export function isNotNullOrUndefined<T extends object>(
+  input: null | undefined | T,
+): input is T {
   return input != null;
 }
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -33,15 +40,15 @@ export function isNotNullOrUndefined<T extends object>(input: null | undefined |
 /** returns a random number between 0.25 and 0.5 for the random note durations */
 export const getRandomDuration = (randomNumber: number): number => {
   // divide by 4 -> [0, 0.25), add 0.25 -> [0.25, 0.5), to avoid 0 duration
-  return (randomNumber / 4) + 0.25;
-}
+  return randomNumber / 4 + 0.25;
+};
 
 /** plays audio for circles */
 export const playNote = (circle: Circle) => {
   const { pitch, duration, velocity } = circle.note,
-        { isHoldNote, audio } = circle,
-        normalizedVelocity = velocity / 127 / Constants.NOTE_VOLUME_NORMALIZER // divide because it is DAMN loud
-  
+    { isHoldNote, audio } = circle,
+    normalizedVelocity = velocity / 127 / Constants.NOTE_VOLUME_NORMALIZER; // divide because it is DAMN loud
+
   // wait for it to load or something
   Tone.ToneAudioBuffer.loaded().then(() => {
     audio.toDestination();
@@ -50,7 +57,7 @@ export const playNote = (circle: Circle) => {
       audio.triggerAttack(
         Tone.Frequency(pitch, "midi").toNote(),
         Tone.now(),
-        normalizedVelocity
+        normalizedVelocity,
       );
     } else {
       // triggerAttackRelease for every other note
@@ -58,7 +65,7 @@ export const playNote = (circle: Circle) => {
         Tone.Frequency(pitch, "midi").toNote(), // Convert MIDI note to frequency
         duration, // has to be in seconds
         undefined, // Use default time for note onset
-        normalizedVelocity
+        normalizedVelocity,
       );
     }
   });
@@ -70,20 +77,21 @@ export const releaseNote = (circle: Circle) => {
   Tone.ToneAudioBuffer.loaded().then(() => {
     circle.audio.triggerRelease(
       Tone.Frequency(pitch, "midi").toNote(),
-      Tone.now()
+      Tone.now(),
     );
   });
-}
+};
 
 /** gets the accuracy of the current state */
 export const getAccuracy = (s: State): number => {
   const { nPerfect, nGreat, nGood, nMiss } = s;
 
   // formula from osu!
-  const accuracy = ( (300 * nPerfect) + (100 * nGreat) + (50 * nGood) ) / 
-                   ( 300 * (nPerfect + nGreat + nGood + nMiss) )
+  const accuracy =
+    (300 * nPerfect + 100 * nGreat + 50 * nGood) /
+    (300 * (nPerfect + nGreat + nGood + nMiss));
   return accuracy * 100; // multiply by 100 because the formula returns a ratio
-}
+};
 
 /** gets the current state's multiplier based on the combo */
 export const getNewMutliplier = (s: State): number => {
@@ -93,32 +101,40 @@ export const getNewMutliplier = (s: State): number => {
   }
 
   return s.multiplier;
-}
+};
 
 /** checks if circle is out of bounds / has gone past the hit circles */
-export const circleOutOfBounds = (circle: Circle): boolean => (
+export const circleOutOfBounds = (circle: Circle): boolean =>
   // userPlayed and !userPlayed have different timings to allow for user played circles
   // to go past the hit circle
-  ( !circle.note.userPlayed && Number(circle.cy) > Constants.HITCIRCLE_CENTER ) ||
-  ( circle.note.userPlayed  && Number(circle.cy) > Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA )
-);
+  (!circle.note.userPlayed && Number(circle.cy) > Constants.HITCIRCLE_CENTER) ||
+  (circle.note.userPlayed &&
+    Number(circle.cy) >
+      Constants.HITCIRCLE_CENTER + Constants.USERPLAYED_CIRCLE_VISIBLE_EXTRA);
 
 /** checks if tail's y1 (top y coordinate) has gone past hit circles */
-export const tailOutOfBounds = (tail: CircleLine): boolean => parseInt(tail.y1) >= Constants.HITCIRCLE_CENTER;
+export const tailOutOfBounds = (tail: CircleLine): boolean =>
+  parseInt(tail.y1) >= Constants.HITCIRCLE_CENTER;
 
 /** gets the column for the current circle */
-export const getColumn = (circle: Circle, s: State): [number, readonly number[]] => {
+export const getColumn = (
+  circle: Circle,
+  s: State,
+): [number, readonly number[]] => {
   const { start, userPlayed } = circle.note,
-        { prevTimeInColumn } = s,
-        randomNumber = RNG.scale(RNG.hash(start * 1000)),
-        columns = [0, 1, 2, 3],
-        modifier = [-1, 1],
-        currentTime = start,
-        randomIndex = Math.floor(randomNumber * modifier.length),
-        initialColumn = Math.floor(randomNumber * columns.length);
-  
+    { prevTimeInColumn } = s,
+    randomNumber = RNG.scale(RNG.hash(start * 1000)),
+    columns = [0, 1, 2, 3],
+    modifier = [-1, 1],
+    currentTime = start,
+    randomIndex = Math.floor(randomNumber * modifier.length),
+    initialColumn = Math.floor(randomNumber * columns.length);
+
   function findColumn(column: number, counter: number): number {
-    if (counter <= 0 || Math.abs(prevTimeInColumn[column] - currentTime) > 0.150) {
+    if (
+      counter <= 0 ||
+      Math.abs(prevTimeInColumn[column] - currentTime) > 0.15
+    ) {
       return column;
     }
     const newColumn = (column + modifier[randomIndex] + 4) % 4;
@@ -127,25 +143,26 @@ export const getColumn = (circle: Circle, s: State): [number, readonly number[]]
 
   const newColumn = findColumn(initialColumn, 3);
 
-  const updatedPrevColumnTimes =
-    userPlayed
-      ? prevTimeInColumn.map((time, index) => index === newColumn ? currentTime : time)
-      : prevTimeInColumn;
+  const updatedPrevColumnTimes = userPlayed
+    ? prevTimeInColumn.map((time, index) =>
+        index === newColumn ? currentTime : time,
+      )
+    : prevTimeInColumn;
 
   return [newColumn, updatedPrevColumnTimes];
-}
+};
 
 /** processes csv lines into note objects */
 export const processCsv = (values: ReadonlyArray<string>): NoteType[] => {
   const notes = values.map((line) => {
     const splitLine = line.split(","),
-          userPlayed = splitLine[0],
-          instrument = splitLine[1],
-          velocity = Number(splitLine[2]),
-          pitch = Number(splitLine[3]),
-          start = Number(splitLine[4]),
-          end = Number(splitLine[5]),
-          duration = end - start;
+      userPlayed = splitLine[0],
+      instrument = splitLine[1],
+      velocity = Number(splitLine[2]),
+      pitch = Number(splitLine[3]),
+      start = Number(splitLine[4]),
+      end = Number(splitLine[5]),
+      duration = end - start;
 
     return {
       userPlayed: userPlayed.toLowerCase() === "true",
@@ -156,22 +173,22 @@ export const processCsv = (values: ReadonlyArray<string>): NoteType[] => {
       end,
       duration,
     } as const;
-  })
+  });
 
   return notes;
-}
+};
 
 /** renders the song list based on csv */
 export const renderSongs = (songNames: readonly string[]): void => {
-  const container = document.getElementById('song-select') as SVGGraphicsElement & HTMLElement;
+  const container = document.getElementById(
+    "song-select",
+  ) as SVGGraphicsElement & HTMLElement;
 
-  songNames.forEach(song => {
-    const songElement = document.createElement('div');
-    songElement.className = 'song';
+  songNames.forEach((song) => {
+    const songElement = document.createElement("div");
+    songElement.className = "song";
     songElement.textContent = song;
     songElement.id = song;
     container.appendChild(songElement);
   });
-}
-
-
+};
