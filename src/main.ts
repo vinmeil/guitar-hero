@@ -14,8 +14,8 @@
 
 import "./style.css";
 
-import { BehaviorSubject, from, fromEvent, interval, merge, Observable, of, Subscription, timer } from "rxjs";
-import { map, filter, scan, mergeMap, delay, tap } from "rxjs/operators";
+import { BehaviorSubject, from, fromEvent, interval, merge, Observable, of, Subject, Subscription, timer } from "rxjs";
+import { map, filter, scan, mergeMap, delay, tap, startWith } from "rxjs/operators";
 import * as Tone from "tone";
 import { SampleLibrary } from "./tonejs-instruments";
 import { CreateCircle, initialState, HitCircle, reduceState, Tick, KeyUpHold } from "./state";
@@ -62,36 +62,33 @@ export function main(samples: { [key: string]: Tone.Sampler }) {
           filter(({ repeat }) => !repeat))
 
     // so we can map every song select div to a mouse down event
-    const mapMouseDown = (element: HTMLElement): Observable<MouseEvent> => fromEvent<MouseEvent>(element, "mousedown");
+    const mapMouseDown = (element: HTMLElement): Observable<string> => 
+      fromEvent<MouseEvent>(element, "mousedown").pipe(map(_ => element.id));
     const songSelectDivs = document.querySelectorAll(".song")
-    const songName$ = new BehaviorSubject<string>(""); // basically useState() in react
 
     // add mousedown event to every song select div
-    songSelectDivs.forEach(div => {
-      const mouseDown$ = mapMouseDown(div as HTMLElement);
-      mouseDown$.subscribe(_ => {
-        songName$.next(div.id); // set song name to the id of the div
+    const mouseDownStream$ = from(songSelectDivs).pipe(
+      mergeMap(div => mapMouseDown(div as HTMLElement))
+    );
 
-        // hide the song select list and text after a song is selected
-        const songSelectList = document.getElementById('song-select') as SVGGraphicsElement & HTMLElement;
-        const pickSongText = document.getElementById('song-select-text') as SVGGraphicsElement & HTMLElement;
-        songSelectList.style.display = "none";
-        pickSongText.style.display = "none";
-      })
-    })
+    // pass song name into subject
+    const subscription = mouseDownStream$.subscribe(async songName => {
+      // hide the song select list and text after a song is selected
+      const songSelectList = document.getElementById('song-select') as SVGGraphicsElement & HTMLElement;
+      const pickSongText = document.getElementById('song-select-text') as SVGGraphicsElement & HTMLElement;
+      songSelectList.style.display = "none";
+      pickSongText.style.display = "none";
+      const csvContents = await fetchCsvContents(songName);
+      
+      playGame(csvContents);
+      subscription.unsubscribe();
+    });
 
     /** fetches the csv contents using the song name as a param */
     const fetchCsvContents = async (songName: string): Promise<string> => {
       const res = await fetch(`${baseUrl}/assets/${songName}.csv`);
       return res.text();
     }
-
-    // subscribe to songName$ so we can start the game when a song is selected
-    songName$.pipe(
-      // this simulates react's useEffect() kind of i guess where it waits for songName$ to change
-      filter(songName => songName !== ""), // only start the game when a song is selected
-      mergeMap<string, Observable<string>>(songName => from(fetchCsvContents(songName))),
-    ).subscribe(csvContents => playGame(csvContents));
 
     /** main logic of the game, contains streams and how we handle the streams and its contents */
     const playGame = (csvContents: string) => {
@@ -193,13 +190,7 @@ export function main(samples: { [key: string]: Tone.Sampler }) {
 
   const startGame = () => {
       renderSongs([...Constants.SONG_LIST]);
-      // document.body.addEventListener(
-      //     "mousedown",
-      //     function () {
-              main(samples);
-          // },
-      //     { once: true },
-      // );
+      main(samples);
   };
 
   Tone.ToneAudioBuffer.loaded().then(() => {
@@ -209,12 +200,5 @@ export function main(samples: { [key: string]: Tone.Sampler }) {
       }
 
       startGame();
-
-      // fetch(`${baseUrl}/assets/${Constants.SONG_NAME}.csv`)
-      //     .then((response) => response.text())
-      //     .then((text) => startGame(text))
-      //     .catch((error) =>
-      //         console.error("Error fetching the CSV file:", error),
-      //     );
   });
 }
