@@ -72,7 +72,7 @@ export function main(samples: { [key: string]: Tone.Sampler }) {
     );
 
     // pass song name into subject
-    const subscription = mouseDownStream$.subscribe(async songName => {
+    const mainGameSubscription = mouseDownStream$.subscribe(async songName => {
       // hide the song select list and text after a song is selected
       const songSelectList = document.getElementById('song-select') as SVGGraphicsElement & HTMLElement;
       const pickSongText = document.getElementById('song-select-text') as SVGGraphicsElement & HTMLElement;
@@ -81,7 +81,7 @@ export function main(samples: { [key: string]: Tone.Sampler }) {
       const csvContents = await fetchCsvContents(songName);
       
       playGame(csvContents);
-      subscription.unsubscribe();
+      mainGameSubscription.unsubscribe();
     });
 
     /** fetches the csv contents using the song name as a param */
@@ -154,7 +154,7 @@ export function main(samples: { [key: string]: Tone.Sampler }) {
           scan(reduceState, newInitialState),
         );
     
-        const subscription: Subscription = state$.subscribe(updateView(() => subscription.unsubscribe()));
+        const allStreamSubscription: Subscription = state$.subscribe(updateView(() => allStreamSubscription.unsubscribe()));
     }
 }
 
