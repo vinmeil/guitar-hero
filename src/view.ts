@@ -79,34 +79,32 @@ const updateView = (onFinish: () => void) => {
       .filter(isNotNullOrUndefined)
       .forEach((line) => svg.removeChild(line));
 
-    // remove and play audio for circles that have exited the screen
+    // play audio for circles that have exited the screen
     s.exit
-      .map((circle) => {
-        // play note if circle is not userPlayed (bg audio) or if circle is clicked
-        if (!circle.note.userPlayed || circle.circleClicked) {
-          playNote(circle);
-        }
+      // play note if circle is not userPlayed (bg audio) or if circle is clicked
+      .filter((circle) => !circle.note.userPlayed || circle.circleClicked)
+      .map(playNote);
 
-        return document.getElementById(circle.id);
-      })
+    // remove circles that have exited the screen
+    s.exit
+      .map((circle) => document.getElementById(circle.id))
       .filter(isNotNullOrUndefined)
       .forEach((circle) => svg.removeChild(circle));
 
     // remove hold circles if the tail has reached the end of the duration
-    s.holdCircles.forEach((circle) => {
+    s.holdCircles
       // check if the circle is either not being held down or
       // if the circle has reached the end of its duration (using y coordinate)
-      if (
-        !circle.circleClicked ||
-        Number(circle.cy) >=
-          Constants.HITCIRCLE_CENTER + // add length of tail
-            (1000 / Constants.TICK_RATE_MS) *
-              Constants.PIXELS_PER_TICK *
-              circle.note.duration
-      ) {
-        releaseNote(circle);
-      }
-    });
+      .filter(
+        (circle) =>
+          !circle.circleClicked ||
+          Number(circle.cy) >=
+            Constants.HITCIRCLE_CENTER + // add length of tail
+              (1000 / Constants.TICK_RATE_MS) *
+                Constants.PIXELS_PER_TICK *
+                circle.note.duration,
+      )
+      .forEach(releaseNote);
 
     // if game is over -> last note duration has passed, show game over screen
     if (s.gameEnd) {
