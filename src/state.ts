@@ -224,6 +224,7 @@ class HitCircle implements Action {
       const [newCircle, randomNumber] = HitCircle.createRandomNoteCircle(s);
       return {
         ...s,
+        circleCount: s.circleCount + 1,
         exit: s.exit.concat(newCircle),
         randomNumber: randomNumber,
       };
@@ -290,14 +291,14 @@ class HitCircle implements Action {
         id: `circle-${s.circleCount}`,
         r: `${0.07 * Viewport.CANVAS_WIDTH}`,
         cx: `0%`,
-        cy: Constants.HITCIRCLE_CENTER.toString(),
+        cy: `${Constants.HITCIRCLE_CENTER}`,
         style: `fill: green`, // this doesnt matter since it goes straight to exit (doesnt get displayed)
         class: "circle",
         note: {
           userPlayed: false,
           instrument: Constants.INSTRUMENTS[randomInstrumentIndex],
           velocity: scaledRandomNumber * 127,
-          pitch: Math.floor(scaledRandomNumber * 100),
+          pitch: Math.floor(scaledRandomNumber * 127),
           start: s.time,
           end: s.time + randomDuration,
           duration: randomDuration,
