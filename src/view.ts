@@ -108,10 +108,10 @@ const updateView = (onFinish: () => void) => {
 
     // if game is over -> last note duration has passed, show game over screen
     if (s.gameEnd) {
-      const gameOver = document.getElementById("gameOver");
-      if (gameOver) {
-        attr(gameOver, { visibility: "visible" });
-      }
+      const gameOver = document.getElementById(
+        "gameOver",
+      ) as SVGGraphicsElement & HTMLElement;
+      attr(gameOver, { visibility: "visible" });
 
       onFinish();
     }

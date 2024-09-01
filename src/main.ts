@@ -81,7 +81,7 @@ export function main(samples: { [key: string]: Tone.Sampler }) {
 
   /** User input */
 
-  const key$ = (e: Event, k: Key) =>
+  const key$ = (e: Event) => (k: Key) =>
     fromEvent<KeyboardEvent>(document, e).pipe(
       filter(({ code }) => code === k),
       filter(({ repeat }) => !repeat),
@@ -141,32 +141,20 @@ export function main(samples: { [key: string]: Tone.Sampler }) {
       randomNumber: seed,
     };
 
+    // key streams using curried function to make it cleaner
+    const keydown$ = key$("keydown"),
+      keyup$ = key$("keyup"),
+      keys: Key[] = ["KeyA", "KeyS", "KeyK", "KeyL"];
+
     // streams
     const gameClock$ = tick$.pipe(map((elapsed) => new Tick(elapsed))),
-      colOneKeyDown$ = key$("keydown", "KeyA").pipe(
-        map((_) => new HitCircle("KeyA")),
+      keydownStream$ = keys.map((key) =>
+        keydown$(key).pipe(map((_) => new HitCircle(key))),
       ),
-      colTwoKeyDown$ = key$("keydown", "KeyS").pipe(
-        map((_) => new HitCircle("KeyS")),
+      keyupStream$ = keys.map((key) =>
+        keyup$(key).pipe(map((_) => new KeyUpHold(key))),
       ),
-      colThreeKeyDown$ = key$("keydown", "KeyK").pipe(
-        map((_) => new HitCircle("KeyK")),
-      ),
-      colFourKeyDown$ = key$("keydown", "KeyL").pipe(
-        map((_) => new HitCircle("KeyL")),
-      ),
-      colOneKeyUp$ = key$("keyup", "KeyA").pipe(
-        map((_) => new KeyUpHold("KeyA")),
-      ),
-      colTwoKeyUp$ = key$("keyup", "KeyS").pipe(
-        map((_) => new KeyUpHold("KeyS")),
-      ),
-      colThreeKeyUp$ = key$("keyup", "KeyK").pipe(
-        map((_) => new KeyUpHold("KeyK")),
-      ),
-      colFourKeyUp$ = key$("keyup", "KeyL").pipe(
-        map((_) => new KeyUpHold("KeyL")),
-      );
+      keyEvents$ = merge(...keydownStream$, ...keyupStream$);
 
     const circleStream$ = from(notes).pipe(
       mergeMap((note) => of(note).pipe(delay(note.start * 1000))),
@@ -192,21 +180,10 @@ export function main(samples: { [key: string]: Tone.Sampler }) {
     );
 
     // merge all actions so we can do some cool OOP polymorphism stuff with the reduceState
-    const action$ = merge(
-      gameClock$,
-      colOneKeyDown$,
-      colTwoKeyDown$,
-      colThreeKeyDown$,
-      colFourKeyDown$,
-      colOneKeyUp$,
-      colTwoKeyUp$,
-      colThreeKeyUp$,
-      colFourKeyUp$,
-      circleStream$,
-    );
+    const action$ = merge(gameClock$, keyEvents$, circleStream$);
 
     const state$ = timer(3000).pipe(
-      // add a 3 second delay to allow the instruments to load
+      // add a 3 second delay to allow instruments to load and user to get ready
       mergeMap(() => action$),
       scan(reduceState, newInitialState),
     );

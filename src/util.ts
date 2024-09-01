@@ -130,6 +130,7 @@ export const getColumn = (
     randomIndex = Math.floor(randomNumber * modifier.length),
     initialColumn = Math.floor(randomNumber * columns.length);
 
+  /** finds the next column that isnt taken */
   function findColumn(column: number, counter: number): number {
     if (
       counter <= 0 ||
