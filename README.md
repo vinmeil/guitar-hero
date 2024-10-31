@@ -18,7 +18,7 @@ To set up the project locally, follow these steps:
 1. **Clone the repository**:
 
    ```sh
-   git clone <repository-url>
+   git clone https://github.com/vinmeil/guitar-hero.git
    cd <repository-directory>
    ```
 
@@ -100,7 +100,12 @@ Contributions are welcome! Please follow these steps to contribute:
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is not licensed and is intended for educational purposes. Please do not use it to create a public product. If you wish to use it for private, educational purposes, please contact the authors.
+
+## Authors
+
+- Vincent Wesley Liem - [vinmeil](https://github.com/vinmeil) - Main author
+- Adrian Kristanto - [adriankristanto](https://github.com/adriankristanto) - Provided the scaffold in which the repo was forked from
 
 ## Acknowledgements
 
