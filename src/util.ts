@@ -1,9 +1,6 @@
 import * as Tone from "tone";
 import { Circle, CircleLine, Constants, NoteType, State } from "./types";
 
-//////////////////////////////////////////////////////////////////////////////////////////
-// taken from asteroids and previous workshops/applieds
-// credit goes to Tim Dwyer and the FIT2102 teaching team
 export const attr = (e: Element, o: { [p: string]: unknown }) => {
   for (const k in o) e.setAttribute(k, String(o[k]));
 };
@@ -35,7 +32,6 @@ export function isNotNullOrUndefined<T extends object>(
 ): input is T {
   return input != null;
 }
-//////////////////////////////////////////////////////////////////////////////////////////
 
 /** returns a random number between 0.25 and 0.5 for the random note durations */
 export const getRandomDuration = (randomNumber: number): number => {
