@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project is a rhythm game developed as part of an assignment for the FIT2102 course. The game uses functional reactive programming (FRP) principles and is built with TypeScript, RxJS, and Tone.js. Players can select a song and interact with the game by hitting keys in sync with the music.
+This project is a rhythm game developed as a side project to learn about RxJS and observables. The game uses functional reactive programming (FRP) principles and is built with TypeScript, RxJS, and Tone.js while also following the Model-View-Controller (MVC) architecture. Players can select a song and interact with the game by hitting keys in sync with the music.
 
 ## Features
 
