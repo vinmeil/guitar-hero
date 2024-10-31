@@ -1,4 +1,4 @@
-# Assignment 1: Rhythm Game
+# Guitar Hero
 
 ## Overview
 
